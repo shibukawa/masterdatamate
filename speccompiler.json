@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "document_sets": [
+    {
+      "name": "main",
+      "path": "specs"
+    }
+  ],
+  "shared_folders": [
+    "specs/shared"
+  ],
+  "generated_path": ".speccompiler/generated",
+  "backlog_path": "BACKLOG.md",
+  "project_assets": {
+    "templates": "spec-assets/templates",
+    "type_definitions": "spec-assets/type-definitions",
+    "retrieval_recipes": "spec-assets/retrieval-recipes",
+    "feedback_rules": "spec-assets/feedback-rules"
+  },
+  "skill_assets": {
+    "templates": "/Users/shibukawayoshiki/develop/masterdatamate/.agents/skills/spec-compiler/assets/templates",
+    "type_definitions": "/Users/shibukawayoshiki/develop/masterdatamate/.agents/skills/spec-compiler/assets/type-definitions"
+  },
+  "implementation_roots": []
+}

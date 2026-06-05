@@ -1,0 +1,38 @@
+system_name: user
+business_name: Users
+primary_key:
+  - user_id
+export: true
+comment: User master with an external reference to Organizations.
+fields:
+  - system_name: user_id
+    business_name: User ID
+    type: string
+    required: true
+    export: true
+  - system_name: name
+    business_name: Name
+    type: string
+    required: true
+    export: true
+  - system_name: org_id
+    business_name: Organization
+    type: external_reference
+    required: true
+    export: true
+    reference:
+      table: org
+  - system_name: role
+    business_name: Role
+    type: constant
+    required: true
+    export: true
+    constants:
+      - admin
+      - editor
+      - viewer
+  - system_name: start_date
+    business_name: Start Date
+    type: date
+    required: false
+    export: true

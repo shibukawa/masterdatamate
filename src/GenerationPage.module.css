@@ -1,0 +1,183 @@
+.generationPanel {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.generationPanelHead {
+  align-items: center;
+  background: #ffffff;
+  border-bottom: 1px solid #dde5ef;
+  display: flex;
+  justify-content: space-between;
+  min-height: 54px;
+  padding: 0 12px;
+}
+
+.generationPanel h2 {
+  font-size: 15px;
+  line-height: 1.2;
+  margin: 0 0 2px;
+}
+
+.generationPanel p {
+  color: #667085;
+  font-size: 12px;
+  margin: 0;
+}
+
+.generationGrid {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.managementLayout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 320px);
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.managementLayoutCompact {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.managementLayout > .generationPanel {
+  min-width: 0;
+}
+
+.analysisPanel {
+  background: #f8fafc;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.analysisPanel {
+  border-left: 1px solid #dde5ef;
+  border-right: 0;
+}
+
+.selectionHead {
+  align-items: center;
+  border-bottom: 1px solid #dde5ef;
+  display: flex;
+  justify-content: space-between;
+  min-height: 46px;
+  padding: 8px 12px;
+}
+
+.selectionHead strong {
+  font-size: 14px;
+}
+
+.selectionHead button {
+  min-height: 30px;
+}
+
+.selectionList,
+.analysisList {
+  display: grid;
+  gap: 6px;
+  min-height: 0;
+  overflow: auto;
+  padding: 10px;
+}
+
+.selectionRow {
+  align-items: start;
+  background: #ffffff;
+  border: 1px solid #d8e2ee;
+  border-radius: 6px;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: auto minmax(0, 1fr);
+  padding: 9px;
+}
+
+.selectionRow span,
+.analysisList div {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.selectionRow strong,
+.analysisList strong {
+  color: #1f2937;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.selectionRow small,
+.analysisList small,
+.analysisList span,
+.selectionHint {
+  color: #667085;
+  font-size: 12px;
+}
+
+.selectionHint {
+  border-top: 1px solid #dde5ef;
+  margin: 0;
+  padding: 10px 12px;
+}
+
+.analysisStats {
+  border-bottom: 1px solid #dde5ef;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 0;
+  padding: 10px;
+}
+
+.analysisStats div {
+  background: #ffffff;
+  border: 1px solid #d8e2ee;
+  display: grid;
+  gap: 4px;
+  padding: 8px;
+}
+
+.analysisStats dt {
+  color: #667085;
+  font-size: 11px;
+}
+
+.analysisStats dd {
+  color: #172033;
+  font-size: 18px;
+  font-weight: 700;
+  margin: 0;
+}
+
+.analysisList div {
+  background: #ffffff;
+  border: 1px solid #d8e2ee;
+  border-radius: 6px;
+  padding: 9px;
+}
+
+.diagnostics {
+  border-top: 1px solid #dde5ef;
+  color: #991b1b;
+  font-size: 12px;
+  margin: 0;
+  max-height: 160px;
+  overflow: auto;
+  padding: 10px 10px 10px 28px;
+}
+
+@media (max-width: 1100px) {
+  .managementLayout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .analysisPanel {
+    display: none;
+  }
+}

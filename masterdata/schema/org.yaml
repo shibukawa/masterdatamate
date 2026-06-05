@@ -1,0 +1,36 @@
+system_name: org
+business_name: Organizations
+primary_key:
+  - org_id
+export: true
+comment: Organization master used by users and products.
+fields:
+  - system_name: org_id
+    business_name: Org ID
+    type: string
+    required: true
+    export: true
+  - system_name: name
+    business_name: Name
+    type: string
+    required: true
+    export: true
+  - system_name: region
+    business_name: Region
+    type: constant
+    required: true
+    export: true
+    constants:
+      - JP
+      - US
+      - EU
+  - system_name: active
+    business_name: Active
+    type: boolean
+    required: true
+    export: true
+  - system_name: internal_note
+    business_name: Internal Note
+    type: string
+    required: false
+    export: false

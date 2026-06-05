@@ -1,0 +1,4 @@
+interface:
+  display_name: "Spec Compiler"
+  short_description: "Maintain AI-friendly specification corpora"
+  default_prompt: "Use $spec-compiler to initialize, validate, compile, or query a Markdown specification corpus."

@@ -1,0 +1,14 @@
+user:
+  - key: user-akari
+    data:
+      name: Akari
+      org_id: org-product
+      role: admin
+      start_date: 2026-01-15
+    name: Akari
+  - key: user-browser
+    data:
+      name: Browser User Edited
+      org_id: org-product
+      role: viewer
+    name: Browser User Edited

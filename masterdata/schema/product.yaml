@@ -1,0 +1,43 @@
+system_name: product
+business_name: Products
+primary_key:
+  - product_id
+export: true
+comment: Product master used to exercise numbers, constants, and references.
+fields:
+  - system_name: product_id
+    business_name: Product ID
+    type: string
+    required: true
+    export: true
+  - system_name: title
+    business_name: Title
+    type: string
+    required: true
+    export: true
+  - system_name: owner_org_id
+    business_name: Owner Org
+    type: external_reference
+    required: true
+    export: true
+    reference:
+      table: org
+  - system_name: category
+    business_name: Category
+    type: constant
+    required: true
+    export: true
+    constants:
+      - core
+      - addon
+      - internal
+  - system_name: price
+    business_name: Price
+    type: decimal
+    required: true
+    export: true
+  - system_name: sort_order
+    business_name: Sort Order
+    type: integer
+    required: true
+    export: true

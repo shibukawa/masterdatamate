@@ -1,0 +1,136 @@
+# MasterDataMate
+
+[日本語 README](./README.ja.md)
+
+MasterDataMate is a schema-driven master data editor for teams that keep
+table-like master data in Git. It stores canonical data as YAML, validates
+records against table-local schemas, supports generation-based dataset layers,
+and can export merged data through backend-specific adapters.
+
+## Features
+
+- Edit master data through a React/Vite frontend.
+- Keep schemas and records in reviewable YAML files.
+- Load and save project-local `masterdata/` workspaces.
+- Build a single Go web server binary with embedded frontend assets.
+- Build a Wails desktop host that shares the Go service layer.
+- Use an npm wrapper for locally built or prebuilt native binaries.
+
+## Screenshots
+
+![Table editing screen](./docs/screenshots/table-editing.jpg)
+
+## Requirements
+
+- Node.js and npm
+- Go
+- Wails tooling, only when building the desktop distribution
+
+## Install
+
+Install JavaScript dependencies:
+
+```bash
+npm ci
+```
+
+## Development
+
+Run the Vite development server:
+
+```bash
+npm run dev
+```
+
+Run the Node/Hono development server:
+
+```bash
+npm start
+```
+
+Run the Go web server against a workspace:
+
+```bash
+npm run start:go -- --workspace .
+```
+
+The sample workspace lives under `masterdata/`.
+
+## Build
+
+Build the frontend:
+
+```bash
+npm run build
+```
+
+Build the React frontend and package it into a Go server binary:
+
+```bash
+npm run build:go
+./dist-native/masterdatamate --workspace .
+```
+
+The Go server embeds `dist` with `go:embed`, serves `/api/*`, serves static Vite assets, and falls back to `index.html` for SPA routes.
+
+## npm Wrapper
+
+For local development after `npm run build:go`:
+
+```bash
+npx masterdatamate --workspace .
+```
+
+Published packages can place platform-specific binaries under `prebuilds/<platform>-<arch>/masterdatamate`.
+
+## Desktop Build
+
+Build the Wails desktop entrypoint:
+
+```bash
+npm run build:desktop
+```
+
+On macOS, create an `.app` bundle:
+
+```bash
+npm run package:desktop:mac
+```
+
+`wails.json` defines the frontend build hooks for Wails packaging. The desktop host reuses the same Go host layer and Vite frontend bundle as the web server.
+
+## Make Targets
+
+The repository also includes a `Makefile`:
+
+```bash
+make install
+make backend
+make desktop
+make package-mac
+make test
+make check
+make run
+```
+
+`make run` starts the Go web server with `WORKSPACE`, `HOST`, and `PORT`
+variables, for example:
+
+```bash
+make run WORKSPACE=. HOST=127.0.0.1 PORT=8787
+```
+
+## Project Layout
+
+- `src/`: React frontend
+- `server/`: Node/Hono development server
+- `cmd/masterdatamate/`: Go web server entrypoint
+- `internal/host/`: shared Go host services
+- `masterdata/`: sample schemas and generation data
+- `specs/`: product and implementation specifications
+- `bin/masterdatamate.js`: npm wrapper for native binaries
+
+## License
+
+MasterDataMate is licensed under the GNU Affero General Public License v3.0.
+See [LICENSE](./LICENSE).

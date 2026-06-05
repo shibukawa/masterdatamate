@@ -1,0 +1,15 @@
+org:
+  - key: org-product
+    data:
+      name: Product Team
+      region: JP
+      active: true
+      internal_note: Owns sample product planning.
+    name: Product Team
+  - key: org-liveops
+    data:
+      name: LiveOps
+      region: US
+      active: true
+      internal_note: Validates editing workflow.
+    name: LiveOps

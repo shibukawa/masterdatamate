@@ -1,0 +1,17 @@
+product:
+  - key: prod-core
+    name: Core Planner
+    data:
+      title: Core Planner
+      owner_org_id: org-product
+      category: core
+      price: 1200
+      sort_order: 10
+  - key: prod-ops
+    name: Ops Console
+    data:
+      title: Ops Console
+      owner_org_id: org-liveops
+      category: addon
+      price: 450
+      sort_order: 20

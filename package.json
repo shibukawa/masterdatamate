@@ -1,0 +1,31 @@
+{
+  "name": "masterdatamate",
+  "version": "0.1.0",
+  "private": true,
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "scripts": {
+    "build": "vite build",
+    "build:go": "npm run build && rm -rf cmd/masterdatamate/dist && cp -R dist cmd/masterdatamate/dist && mkdir -p .cache/go-build dist-native && GOCACHE=$PWD/.cache/go-build go build -mod=mod -o dist-native/masterdatamate ./cmd/masterdatamate",
+    "build:desktop": "npm run build && mkdir -p .cache/go-build build/bin && GOCACHE=$PWD/.cache/go-build go build -mod=mod -o build/bin/MasterDataMate .",
+    "package:desktop:mac": "npm run build:desktop && rm -rf build/MasterDataMate.app && mkdir -p build/MasterDataMate.app/Contents/MacOS build/MasterDataMate.app/Contents/Resources && cp build/bin/MasterDataMate build/MasterDataMate.app/Contents/MacOS/MasterDataMate && cp build/darwin/Info.plist build/MasterDataMate.app/Contents/Info.plist",
+    "start:go": "mkdir -p .cache/go-build && GOCACHE=$PWD/.cache/go-build go run -mod=mod ./cmd/masterdatamate",
+    "start": "node server/index.js",
+    "dev": "vite --host 127.0.0.1",
+    "check": "vite build"
+  },
+  "bin": {
+    "masterdatamate": "bin/masterdatamate.js"
+  },
+  "dependencies": {
+    "@hono/node-server": "^1.14.1",
+    "@vitejs/plugin-react": "^5.0.0",
+    "hono": "^4.7.11",
+    "vite": "^7.0.0",
+    "yaml": "^2.8.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "@extable/react": "^0.3.9"
+  },
+  "devDependencies": {}
+}

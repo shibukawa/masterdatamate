@@ -1,0 +1,35 @@
+{
+  "families": ["system", "requirement", "decision", "interface", "UI", "component", "data", "reference"],
+  "types": [
+    {"id": "system", "name": "System", "family": "system", "template": "generic.md"},
+    {"id": "requirement", "name": "Requirement / Feature", "family": "requirement", "template": "generic.md"},
+    {"id": "business-rule", "name": "Business Rule", "family": "requirement", "template": "generic.md"},
+    {"id": "architectural-decision", "name": "Architectural Decision", "family": "decision", "template": "generic.md"},
+    {"id": "ui-screen", "name": "UI Screen", "family": "UI", "template": "ui-screen.md"},
+    {"id": "ui-flow", "name": "UI Flow", "family": "UI", "template": "generic.md"},
+    {"id": "api", "name": "API", "family": "interface", "template": "api.md"},
+    {"id": "error-message", "name": "Error Message", "family": "interface", "template": "generic.md"},
+    {"id": "server-component", "name": "Server Component", "family": "component", "template": "component.md"},
+    {"id": "batch-component", "name": "Batch Component", "family": "component", "template": "component.md"},
+    {"id": "data-model", "name": "Data Model", "family": "data", "template": "data-model.md"},
+    {"id": "data-domain", "name": "Data Domain", "family": "data", "template": "generic.md"},
+    {"id": "data-flow", "name": "Data Flow", "family": "data", "template": "data-flow.md"},
+    {"id": "glossary-term", "name": "Glossary Term", "family": "reference", "template": "generic.md"}
+  ],
+  "relation_headings": {
+    "dependencies": "depends_on",
+    "depends on": "depends_on",
+    "reads": "reads",
+    "writes": "writes",
+    "invoked apis": "invokes",
+    "apis": "invokes",
+    "screens": "shown_on",
+    "related requirements": "relates_to",
+    "related documents": "relates_to",
+    "uses common details": "uses_common_detail",
+    "common details": "uses_common_detail",
+    "components": "uses_component",
+    "data stores": "uses_data",
+    "decisions": "constrained_by"
+  }
+}
