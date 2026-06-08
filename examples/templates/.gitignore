@@ -1,0 +1,5 @@
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+cmd/weatherdemo/weatherdemo
+cmd/weatherdemo/weatherdemo.exe

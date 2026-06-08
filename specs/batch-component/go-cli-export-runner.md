@@ -32,8 +32,6 @@ The CLI must use the same Go export service as the packaged web server and deskt
 - [Generation merge and export flow](../data-flow/generation-merge-and-export-flow.md)
 - [Schema validation engine](../component/schema-validation-engine.md)
 - [Export settings model](../data-model/export-settings-model.md)
-- [Template export definition model](../data-model/template-export-definition-model.md)
-- [Pongo2 template export adapter](../component/pongo2-template-export-adapter.md)
 - [Go embedded web server host](../server-component/go-embedded-web-server-host.md)
 
 ## Command Shape
@@ -56,15 +54,14 @@ The same executable may keep the existing no-subcommand server behavior for back
 | --- | --- | --- |
 | `--workspace` | no | Project root containing `masterdata`. When omitted, use the same upward workspace discovery as [Go embedded web server host](../server-component/go-embedded-web-server-host.md). |
 | `--generations` | no | Comma-separated generation IDs to export. Request order does not define precedence. When omitted, use every generation whose `_config.yaml` has `output: true`. |
-| `--format` | yes | CLI export format. Uses unpacked identifiers for multi-file formats: `csv`, `excel-csv`, `json`, `yaml`, `ndjson`, and `template`, plus single-artifact formats `sql`, `xlsx`, and `sqlite`. ZIP packaging is intentionally not a CLI format; callers can run a separate zip command when needed. |
-| `--output` | yes unless `--check-only` is set | Artifact destination path. For `csv`, `excel-csv`, `json`, `yaml`, `ndjson`, and `template`, this is an output directory. For `sql`, `xlsx`, and `sqlite`, this is an output file. Parent directories must already exist unless `--mkdirs` is supplied. |
+| `--format` | yes | CLI export format. Uses unpacked identifiers for multi-file formats: `csv`, `excel-csv`, `json`, `yaml`, and `ndjson`, plus single-artifact formats `sql`, `xlsx`, and `sqlite`. ZIP packaging is intentionally not a CLI format; callers can run a separate zip command when needed. |
+| `--output` | yes unless `--check-only` is set | Artifact destination path. For `csv`, `excel-csv`, `json`, `yaml`, and `ndjson`, this is an output directory. For `sql`, `xlsx`, and `sqlite`, this is an output file. Parent directories must already exist unless `--mkdirs` is supplied. |
 | `--mkdirs` | no | Create missing parent directories for `--output`. |
 | `--check-only` | no | Run validation and print diagnostics without writing an artifact. |
 | `--diagnostics-format` | no | `text` or `json`; defaults to `text` for terminals and `json` when `--json` is set. |
 | `--diagnostics-output` | no | Optional path for diagnostics. If omitted, diagnostics go to stderr for text output or stdout for `--json`. |
 | `--time-format` | no | Temporal formatting for CSV-like exports. Supported values are `iso`, `epoch-sec`, `epoch-ms`, and `iso-local`. When omitted, use the selected format's persisted export setting, then built-in default `iso`. |
 | `--timezone` | no | IANA timezone name such as `Asia/Tokyo` used by timezone-dependent temporal formatting, especially `iso-local`. When omitted, use the selected format's persisted export setting, then the runtime local timezone. |
-| `--template-definitions` | no | Comma-separated template export definition IDs used when `--format template` is selected. When omitted, use `formats.template.definition_ids` from export settings, then enabled definitions from `masterdata/export_definitions.yaml`. |
 | `--json` | no | Print a machine-readable command result JSON object. |
 | `--force-overwrite` | no | Allow replacing an existing output file after validation passes. |
 
@@ -130,12 +127,10 @@ Validation failure writes the same shape with `exportable: false`, non-empty dia
 - CLI export is non-interactive.
 - CLI export must be deterministic for the same workspace content, generation IDs, format, options, and output path.
 - CLI multi-file formats are unpacked directory outputs; the CLI must not create ZIP archives for `csv`, `excel-csv`, `json`, `yaml`, or `ndjson`.
-- CLI template export is an unpacked directory output; the CLI must not create ZIP archives for `template`.
 - CLI ZIP packaging is out of scope because callers can run a separate `zip` command over the output directory.
 - CLI export uses output-enabled generations from generation metadata when `--generations` is omitted.
 - CLI export reads persisted project export settings when format options are omitted.
-- CLI template export reads `masterdata/export_definitions.yaml` and template files under `masterdata/export_templates/`.
-- `--template-definitions` is valid only with `--format template`.
+- Pongo2 template-based source or text generation is executed by `masterdatamate generate`, not by `masterdatamate export --format template`.
 - CLI option resolution order is explicit flags, persisted settings for the selected logical format, then built-in adapter defaults.
 - The export subcommand must not mutate `masterdata/export_settings.yaml` during normal artifact creation.
 - Batch jobs may still pass `--generations` explicitly when they require a pinned generation set independent of metadata changes.
@@ -150,7 +145,6 @@ Validation failure writes the same shape with `exportable: false`, non-empty dia
 - Existing output directories are rejected unless `--force-overwrite` is supplied.
 - Artifact writes must be atomic from the user's perspective by writing a temporary file or temporary directory and renaming it after success.
 - Directory output formats must use deterministic file names based on table system names, such as `product.csv`, `product.json`, `product.yaml`, or `product.ndjson`.
-- Template output file names are determined by each selected template export definition's `output_path` template and must pass the same relative path safety checks as HTTP export.
 - `csv` writes UTF-8 without BOM, LF line endings, mandatory header rows, comma delimiters, RFC 4180-style double-quote escaping, and boolean values as `true` or `false`.
 - `excel-csv` writes `.csv` table files with UTF-8 BOM, boolean values as `TRUE` or `FALSE`, and prepends a single apostrophe to string values beginning with `=`, `+`, `-`, or `@` before CSV quoting.
 - `--time-format=iso` emits date fields as `YYYY-MM-DD`, time fields as `HH:mm:ss` with optional fractional seconds when present, and datetime fields as ISO 8601/RFC 3339 strings.
@@ -205,11 +199,10 @@ Validation failure writes the same shape with `exportable: false`, non-empty dia
 - [Generation merge and export flow](../data-flow/generation-merge-and-export-flow.md)
 - [Schema validation engine](../component/schema-validation-engine.md)
 - [Export settings model](../data-model/export-settings-model.md)
-- [Template export definition model](../data-model/template-export-definition-model.md)
-- [Pongo2 template export adapter](../component/pongo2-template-export-adapter.md)
+- [Go CLI generate runner](go-cli-generate-runner.md)
 - [Go embedded web server host](../server-component/go-embedded-web-server-host.md)
 - [Wails desktop host](../server-component/wails-desktop-host.md)
 
 ## Native-Language Summary
 
-Go CLI の `masterdatamate export` は、Web UI を起動せずに同じ export チェックと成果物生成を実行する。CLI では CSV/Excel CSV/JSON/YAML/NDJSON/template を ZIP に固めず、出力ディレクトリへ table ごとのファイルまたはテンプレート生成ファイルとして直接書く。ZIP が必要な場合は利用者が別途 `zip` コマンドを実行する。`--format template` では `masterdata/export_definitions.yaml` と `masterdata/export_templates/` を読み、`--template-definitions` で選択定義を指定できる。標準CSVはUTF-8 BOMなし/LF/ヘッダーあり/RFC 4180相当で boolean は `true/false`、`excel-csv` はBOMつきで boolean は `TRUE/FALSE`、`=`、`+`、`-`、`@` 始まりの文字列に先頭アポストロフィを付ける。日時は `--time-format` で `iso`、`epoch-sec`、`epoch-ms`、`iso-local` を選べ、`--timezone` は任意。これらの形式別オプションが省略された場合は `masterdata/export_settings.yaml` の保存済み設定を読み、明示フラグがあればそれを優先する。`--generations` が省略された場合は generation 設定の `output: true` 世代を対象にし、固定したいバッチ処理では `--generations` で対象世代を明示できる。事前検証に失敗した場合は成果物を書かない。Web API、Wails、CLI は同じ Go export service を共有して、フォーマット出力と診断の差分を防ぐ。
+Go CLI の `masterdatamate export` は、Web UI を起動せずに同じ export チェックと成果物生成を実行する。CLI では CSV/Excel CSV/JSON/YAML/NDJSON を ZIP に固めず、出力ディレクトリへ table ごとのファイルとして直接書く。ZIP が必要な場合は利用者が別途 `zip` コマンドを実行する。Pongo2 テンプレートによる Go/SQL などの生成は `masterdatamate generate` が担当し、`export --format template` では実行しない。標準CSVはUTF-8 BOMなし/LF/ヘッダーあり/RFC 4180相当で boolean は `true/false`、`excel-csv` はBOMつきで boolean は `TRUE/FALSE`、`=`、`+`、`-`、`@` 始まりの文字列に先頭アポストロフィを付ける。日時は `--time-format` で `iso`、`epoch-sec`、`epoch-ms`、`iso-local` を選べ、`--timezone` は任意。これらの形式別オプションが省略された場合は `masterdata/export_settings.yaml` の保存済み設定を読み、明示フラグがあればそれを優先する。`--generations` が省略された場合は generation 設定の `output: true` 世代を対象にし、固定したいバッチ処理では `--generations` で対象世代を明示できる。事前検証に失敗した場合は成果物を書かない。Web API、Wails、CLI は同じ Go export service を共有して、フォーマット出力と診断の差分を防ぐ。

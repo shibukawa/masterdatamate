@@ -1,0 +1,32 @@
+system_name: region
+business_name: Region
+primary_key: [region_id]
+export: true
+comment: Runtime region configuration for weather collection.
+fields:
+  - system_name: region_id
+    business_name: Region ID
+    type: string
+    required: true
+    export: true
+  - system_name: display_name
+    business_name: Display name
+    type: string
+    required: true
+    export: true
+  - system_name: timezone
+    business_name: Timezone
+    type: string
+    required: true
+    export: true
+  - system_name: latitude
+    business_name: Latitude
+    type: decimal
+    required: true
+    export: true
+  - system_name: longitude
+    business_name: Longitude
+    type: decimal
+    required: true
+    export: true
+

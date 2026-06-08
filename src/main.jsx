@@ -8,12 +8,14 @@ import { displayRows, normalizeRows } from "./ExtableEditor.jsx";
 import { GenerationEditingPage } from "./GenerationEditingPage.jsx";
 import { SchemaEditingPage } from "./SchemaEditingPage.jsx";
 import { TableEditingPage } from "./TableEditingPage.jsx";
+import { TemplateExportDefinitionPage } from "./TemplateExportDefinitionPage.jsx";
 import { defaultOutputGenerationIds, displayGenerationName, nextEditGeneration, sortGenerations } from "./generationUtils.js";
 import { EDIT_GENERATION_KEY, writeJsonStorage } from "./storage.js";
 
 const TABLE_ROUTE = "/";
 const GENERATION_ROUTE = "/generations/edit";
 const SCHEMA_ROUTE = "/schemas";
+const EXPORT_DEFINITIONS_ROUTE = "/generate/definitions";
 const EXPORT_FORMATS = [
   ["csv_zip", "CSV ZIP"],
   ["excel_csv_zip", "Excel CSV (BOM) ZIP"],
@@ -40,6 +42,7 @@ const DEFAULT_EXPORT_OPTIONS = { time_format: "iso", timezone: "" };
 function pageFromPath(pathname) {
   if (pathname === GENERATION_ROUTE) return "generations";
   if (pathname === SCHEMA_ROUTE || pathname.startsWith(`${SCHEMA_ROUTE}/`)) return "schemas";
+  if (pathname === EXPORT_DEFINITIONS_ROUTE) return "exportDefinitions";
   return "tables";
 }
 
@@ -165,6 +168,7 @@ function App() {
   const generationEditorRef = useRef(null);
   const schemaListRef = useRef(null);
   const schemaDetailRef = useRef(null);
+  const exportDefinitionRef = useRef(null);
   const [tables, setTables] = useState([]);
   const [generations, setGenerations] = useState([]);
   const [generationSettings, setGenerationSettings] = useState({ ordering_mode: "numeric", numeric_digits: 4 });
@@ -182,6 +186,16 @@ function App() {
   const [schemaSaving, setSchemaSaving] = useState(false);
   const [schemaSelection, setSchemaSelection] = useState(null);
   const [schemaUndoRedo, setSchemaUndoRedo] = useState({ canUndo: false, canRedo: false });
+  const [exportDefinitionRows, setExportDefinitionRows] = useState([]);
+  const [exportDefinitionOutputRoot, setExportDefinitionOutputRoot] = useState("");
+  const [savedExportDefinitionOutputRoot, setSavedExportDefinitionOutputRoot] = useState("");
+  const [exportDefinitionGridDirty, setExportDefinitionGridDirty] = useState(false);
+  const [exportDefinitionTables, setExportDefinitionTables] = useState([]);
+  const [exportDefinitionFields, setExportDefinitionFields] = useState({});
+  const [exportDefinitionDirty, setExportDefinitionDirty] = useState(false);
+  const [exportDefinitionSaving, setExportDefinitionSaving] = useState(false);
+  const [exportDefinitionSelection, setExportDefinitionSelection] = useState(null);
+  const [exportDefinitionUndoRedo, setExportDefinitionUndoRedo] = useState({ canUndo: false, canRedo: false });
   const [selectedTable, setSelectedTable] = useState("");
   const [schema, setSchema] = useState(null);
   const [rows, setRows] = useState([]);
@@ -218,6 +232,15 @@ function App() {
     if (page !== "schemas") return;
     loadSchemaList().catch((error) => setStatus(error.message));
   }, [page]);
+
+  useEffect(() => {
+    if (page !== "exportDefinitions") return;
+    loadExportDefinitions().catch((error) => setStatus(error.message));
+  }, [page]);
+
+  useEffect(() => {
+    setExportDefinitionDirty(exportDefinitionGridDirty || exportDefinitionOutputRoot !== savedExportDefinitionOutputRoot);
+  }, [exportDefinitionGridDirty, exportDefinitionOutputRoot, savedExportDefinitionOutputRoot]);
 
   useEffect(() => {
     if (page !== "schemas") return;
@@ -316,10 +339,16 @@ function App() {
     return window.confirm("Unsaved schema edits exist. Discard them and leave?");
   }
 
+  function confirmExportDefinitionSwitch() {
+    if (!exportDefinitionDirty) return true;
+    return window.confirm("Unsaved generate definition edits exist. Discard them and leave?");
+  }
+
   function confirmNavigation(nextPage = page) {
     if (page === "tables" && nextPage !== "tables") return confirmTableSwitch();
     if (page === "generations" && nextPage !== "generations") return confirmGenerationSwitch();
     if (page === "schemas" && nextPage !== "schemas") return confirmSchemaSwitch();
+    if (page === "exportDefinitions" && nextPage !== "exportDefinitions") return confirmExportDefinitionSwitch();
     return true;
   }
 
@@ -338,7 +367,7 @@ function App() {
   function navigate(nextPage) {
     if (nextPage === page) return;
     if (!confirmNavigation(nextPage)) return;
-    const path = nextPage === "generations" ? GENERATION_ROUTE : (nextPage === "schemas" ? SCHEMA_ROUTE : TABLE_ROUTE);
+    const path = nextPage === "generations" ? GENERATION_ROUTE : (nextPage === "schemas" ? SCHEMA_ROUTE : (nextPage === "exportDefinitions" ? EXPORT_DEFINITIONS_ROUTE : TABLE_ROUTE));
     window.history.pushState({ page: nextPage }, "", path);
     setPage(nextPage);
     if (nextPage === "schemas") setSchemaView("list");
@@ -350,7 +379,7 @@ function App() {
       const nextPage = pageFromPath(window.location.pathname);
       if (nextPage === page) return;
       if (!confirmNavigation(nextPage)) {
-        const currentPath = page === "generations" ? GENERATION_ROUTE : (page === "schemas" ? (schemaView === "detail" && schemaDetail ? `${SCHEMA_ROUTE}/${encodeURIComponent(schemaDetail.table_id)}/edit` : SCHEMA_ROUTE) : TABLE_ROUTE);
+        const currentPath = page === "generations" ? GENERATION_ROUTE : (page === "schemas" ? (schemaView === "detail" && schemaDetail ? `${SCHEMA_ROUTE}/${encodeURIComponent(schemaDetail.table_id)}/edit` : SCHEMA_ROUTE) : (page === "exportDefinitions" ? EXPORT_DEFINITIONS_ROUTE : TABLE_ROUTE));
         window.history.pushState({ page }, "", currentPath);
         return;
       }
@@ -359,7 +388,7 @@ function App() {
     };
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
-  }, [page, dirty, generationDirty, schemaDirty, schemaView, schemaDetail]);
+  }, [page, dirty, generationDirty, schemaDirty, exportDefinitionDirty, schemaView, schemaDetail]);
 
   async function loadTables() {
     const { payload } = await api("/api/tables");
@@ -547,6 +576,120 @@ function App() {
       setStatus(error.message);
     } finally {
       setSchemaSaving(false);
+    }
+  }
+
+  async function loadExportDefinitions() {
+    const { payload } = await api("/api/generate-definitions");
+    const outputRoot = payload.definitions?.output_root ?? "";
+    setExportDefinitionOutputRoot(outputRoot);
+    setSavedExportDefinitionOutputRoot(outputRoot);
+    setExportDefinitionRows(payload.rows ?? []);
+    setExportDefinitionTables(payload.tables ?? []);
+    setExportDefinitionFields(payload.fields ?? {});
+    setExportDefinitionGridDirty(false);
+    setExportDefinitionDirty(false);
+    setExportDefinitionSelection(null);
+    setExportDefinitionUndoRedo({ canUndo: false, canRedo: false });
+    setStatus("Generate definitions loaded.");
+  }
+
+  function selectedExportDefinitionRow() {
+    const rows = exportDefinitionRef.current?.getRows() ?? exportDefinitionRows;
+    const selected = rows.find((row) => row.selected);
+    if (selected) return selected;
+    const target = exportDefinitionSelection?.activeRowKey ?? exportDefinitionSelection?.activeRowIndex;
+    return target === undefined || target === null ? null : exportDefinitionRef.current?.getRow(target);
+  }
+
+  function createExportDefinition() {
+    exportDefinitionRef.current?.insertBlank();
+    setExportDefinitionGridDirty(true);
+  }
+
+  function revertExportDefinitions() {
+    if (!exportDefinitionDirty) return;
+    if (!window.confirm("Discard pending generate definition edits?")) return;
+    loadExportDefinitions().catch((error) => setStatus(error.message));
+  }
+
+  function deleteSelectedExportDefinitions() {
+    const rows = exportDefinitionRef.current?.getRows() ?? [];
+    const selected = rows.filter((row) => row.selected);
+    if (!selected.length) {
+      const target = exportDefinitionSelection?.activeRowKey ?? exportDefinitionSelection?.activeRowIndex;
+      if (exportDefinitionRef.current?.deleteRow(target)) {
+        setExportDefinitionDirty(true);
+        setExportDefinitionGridDirty(true);
+        return;
+      }
+      setStatus("Select generate definition rows to delete.");
+      return;
+    }
+    if (!window.confirm(`Delete selected generate definitions?\n\n${selected.map((row) => row.id || "(new definition)").join("\n")}`)) return;
+    for (const row of selected) {
+      const index = (exportDefinitionRef.current?.getRows() ?? []).findIndex((item) => item.id === row.id);
+      if (index >= 0) exportDefinitionRef.current?.deleteRow(index);
+    }
+    setExportDefinitionGridDirty(true);
+  }
+
+  async function checkSelectedExportDefinitions() {
+    const rows = exportDefinitionRef.current?.getRows() ?? exportDefinitionRows;
+    const selected = rows.filter((row) => row.selected && row.id).map((row) => row.id);
+    const fallback = selectedExportDefinitionRow();
+    const definitionIds = selected.length ? selected : (fallback?.id ? [fallback.id] : []);
+    if (!definitionIds.length) {
+      setStatus("Select generate definitions to check.");
+      return;
+    }
+    setExportDefinitionSaving(true);
+    try {
+      const { payload } = await api("/api/generate/check", {
+        method: "POST",
+        body: JSON.stringify({
+          generationIds: defaultOutputGenerationIds(generations),
+          definitionIds,
+          outputRoot: exportDefinitionOutputRoot
+        })
+      });
+      const count = payload.diagnostics?.length ?? 0;
+      const files = payload.files ?? [];
+      const filePreview = files.slice(0, 5).join(", ");
+      const more = files.length > 5 ? `, +${files.length - 5} more` : "";
+      setStatus(payload.generatable === false
+        ? `${count} generate issue(s).`
+        : `Generate check passed: ${files.length} file(s): ${filePreview}${more}`);
+    } catch (error) {
+      setStatus(error.message);
+    } finally {
+      setExportDefinitionSaving(false);
+    }
+  }
+
+  async function commitExportDefinitions() {
+    const rows = exportDefinitionRef.current?.getRows() ?? [];
+    if (!window.confirm(`Commit generate definition changes?\n\n${rows.length} definition(s) will be saved.`)) return;
+    setExportDefinitionSaving(true);
+    try {
+      const { payload } = await api("/api/generate-definitions", {
+        method: "PUT",
+        body: JSON.stringify({ version: 1, output_root: exportDefinitionOutputRoot, rows })
+      });
+      const outputRoot = payload.definitions?.output_root ?? "";
+      setExportDefinitionOutputRoot(outputRoot);
+      setSavedExportDefinitionOutputRoot(outputRoot);
+      setExportDefinitionRows(payload.rows ?? []);
+      setExportDefinitionTables(payload.tables ?? []);
+      setExportDefinitionFields(payload.fields ?? {});
+      await exportDefinitionRef.current?.clearPending();
+      setExportDefinitionGridDirty(false);
+      setExportDefinitionDirty(false);
+      setStatus("Generate definitions saved.");
+    } catch (error) {
+      setStatus(error.message);
+    } finally {
+      setExportDefinitionSaving(false);
     }
   }
 
@@ -1041,6 +1184,20 @@ function App() {
                   <span>Edit schemas</span>
                 </button>
               </div>
+              <div className={styles.sideSection}>
+                <button
+                  type="button"
+                  className={styles.sidebarAction}
+                  aria-label="Edit generate definitions"
+                  title="Edit generate definitions"
+                  onClick={() => navigate("exportDefinitions")}
+                >
+                  <svg aria-hidden="true" viewBox="0 0 24 24" focusable="false">
+                    <path d="M5 4h14v2H5V4Zm0 4h9v2H5V8Zm0 4h14v2H5v-2Zm0 4h9v2H5v-2Zm12.4-.6 1.4 1.4-3.8 3.8-2.4-2.4 1.4-1.4 1 1 2.4-2.4Z" />
+                  </svg>
+                  <span>Generate definitions</span>
+                </button>
+              </div>
             </div>
           </>
         ) : (
@@ -1131,6 +1288,32 @@ function App() {
           onDirtyChange={setSchemaDirty}
           onSelectionChange={setSchemaSelection}
           onUndoRedoChange={setSchemaUndoRedo}
+        />
+      ) : page === "exportDefinitions" ? (
+        <TemplateExportDefinitionPage
+          gridRef={exportDefinitionRef}
+          rows={exportDefinitionRows}
+          outputRoot={exportDefinitionOutputRoot}
+          tableOptions={exportDefinitionTables}
+          fieldOptions={exportDefinitionFields}
+          dirty={exportDefinitionDirty}
+          saving={exportDefinitionSaving}
+          status={status}
+          selection={exportDefinitionSelection}
+          undoRedo={exportDefinitionUndoRedo}
+          onCreate={createExportDefinition}
+          onDeleteSelected={deleteSelectedExportDefinitions}
+          onCheckSelected={checkSelectedExportDefinitions}
+          onCommit={commitExportDefinitions}
+          onRevert={revertExportDefinitions}
+          onUndo={() => exportDefinitionRef.current?.undo()}
+          onRedo={() => exportDefinitionRef.current?.redo()}
+          onDirtyChange={setExportDefinitionGridDirty}
+          onOutputRootChange={(value) => {
+            setExportDefinitionOutputRoot(value);
+          }}
+          onSelectionChange={setExportDefinitionSelection}
+          onUndoRedoChange={setExportDefinitionUndoRedo}
         />
       ) : (
         <TableEditingPage

@@ -28,10 +28,9 @@ The settings file is stored under the workspace's canonical data root as `master
 | formats.<format>.include_schema | boolean | no | Optional manifest/schema emission preference for formats that support it. |
 | formats.<format>.include_diagnostics_sheet | boolean | no | Optional Excel workbook diagnostics worksheet preference. |
 | formats.<format>.sql_dialect | string | no | Optional SQL dialect for `sql`; defaults to the generic SQL dialect specified by the adapter. |
-| formats.template.definition_ids | array | no | Optional default template export definition IDs. When omitted, enabled definitions from `masterdata/export_definitions.yaml` are used. |
 | formats.<format>.updated_at | string | no | Optional ISO 8601 timestamp for display or conflict diagnostics. |
 
-Logical format IDs are host-neutral: `csv`, `excel-csv`, `json`, `yaml`, `ndjson`, `sql`, `xlsx`, `sqlite`, and `template`. HTTP ZIP download IDs map to these logical IDs before settings lookup:
+Logical format IDs are host-neutral: `csv`, `excel-csv`, `json`, `yaml`, `ndjson`, `sql`, `xlsx`, and `sqlite`. HTTP ZIP download IDs map to these logical IDs before settings lookup:
 
 | HTTP format | Logical settings format |
 | --- | --- |
@@ -40,7 +39,6 @@ Logical format IDs are host-neutral: `csv`, `excel-csv`, `json`, `yaml`, `ndjson
 | `json_zip` | `json` |
 | `yaml_zip` | `yaml` |
 | `ndjson_zip` | `ndjson` |
-| `template_zip` | `template` |
 
 Example:
 
@@ -55,10 +53,6 @@ formats:
   sql:
     sql_dialect: generic
     time_format: iso
-  template:
-    definition_ids:
-      - go_error_constants
-      - go_error_type_per_record
 ```
 
 ## Resolution Order
@@ -99,8 +93,7 @@ If the settings file is missing, the CLI and GUI use built-in defaults. If the f
 - Settings reads and writes must be atomic from the user's perspective.
 - Settings updates must not reorder or rewrite canonical table records.
 - Settings changes are project data changes and may appear in version control diffs.
-- Template export definition content is stored in `masterdata/export_definitions.yaml`, not inside export settings.
-- Template settings may store default definition selection, but template source, scope, and output path rules remain owned by [Template export definition model](template-export-definition-model.md).
+- Template generation definition content, default definition selection, and generation output root are stored in `masterdata/generate_definitions.yaml`, not inside export settings.
 
 ## Dependencies
 
@@ -109,7 +102,8 @@ If the settings file is missing, the CLI and GUI use built-in defaults. If the f
 - [Template export definition model](template-export-definition-model.md)
 - [Export execution flow](../data-flow/export-execution-flow.md)
 - [Go CLI export runner](../batch-component/go-cli-export-runner.md)
+- [Go CLI generate runner](../batch-component/go-cli-generate-runner.md)
 
 ## Native-Language Summary
 
-エクスポート設定は `masterdata/export_settings.yaml` に保存するプロジェクト単位の既定値。GUI は形式ごとに日時形式や timezone などのオプションを読み込み、ユーザーが操作した値を保存して次回の初期値にする。CLI は `--time-format` や `--timezone` などが省略された場合に同じ設定を読み、明示フラグがあればそれを優先する。HTTP の `csv_zip` や `template_zip` などは保存時・参照時に `csv` や `template` のような論理形式へ正規化する。テンプレート本文や scope は `masterdata/export_definitions.yaml` に置き、export settings には既定の definition 選択だけを保存できる。
+エクスポート設定は `masterdata/export_settings.yaml` に保存するプロジェクト単位の既定値。GUI は形式ごとに日時形式や timezone などのオプションを読み込み、ユーザーが操作した値を保存して次回の初期値にする。CLI は `--time-format` や `--timezone` などが省略された場合に同じ設定を読み、明示フラグがあればそれを優先する。HTTP の `csv_zip` などは保存時・参照時に `csv` のような論理形式へ正規化する。テンプレート生成の本文、scope、既定の definition 選択、出力rootは `masterdata/generate_definitions.yaml` に置く。

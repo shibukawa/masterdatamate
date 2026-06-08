@@ -1,0 +1,42 @@
+version: 1
+output_root: generated
+definitions:
+  - id: sql_weather_schema
+    name: SQL weather schema
+    enabled: true
+    scope: project
+    template_file: sql/schema.sql.pongo2
+    output_path: sql/schema.sql
+  - id: go_weather_types
+    name: Go weather types
+    enabled: true
+    scope: project
+    template_file: go/types.go.pongo2
+    output_path: constants/types.go
+    formatter: gofmt
+  - id: go_error_definitions
+    name: Go error definitions
+    enabled: true
+    scope: table
+    table: error_message
+    include_non_exported_fields: true
+    template_file: go/errors.go.pongo2
+    output_path: constants/errors.go
+    formatter: gofmt
+  - id: go_station_registry
+    name: Go station registry by region
+    enabled: true
+    scope: group
+    table: weather_station
+    group_by:
+      field: region_id
+    template_file: go/station_registry.go.pongo2
+    output_path: constants/stations_{{ group.key|snake }}.go
+    formatter: gofmt
+  - id: go_ingest_stub
+    name: Go weather ingestion skeleton
+    enabled: true
+    scope: project
+    template_file: go/ingest_stub.go.pongo2
+    output_path: constants/ingest_stub.go
+    formatter: gofmt

@@ -234,6 +234,12 @@ func (s *server) dispatchAPI(r *http.Request) (int, any, string, []byte, error) 
 	if len(parts) >= 2 && parts[1] == "export-settings" {
 		return s.dispatchExportSettingsAPI(r, parts)
 	}
+	if len(parts) >= 2 && parts[1] == "generate-definitions" {
+		return s.dispatchExportDefinitionsAPI(r, parts)
+	}
+	if len(parts) >= 2 && parts[1] == "generate" {
+		return s.dispatchGenerateAPI(r, parts)
+	}
 	if len(parts) >= 2 && parts[1] == "exports" {
 		return s.dispatchExportAPI(r, parts)
 	}
@@ -465,6 +471,59 @@ func (s *server) dispatchExportSettingsAPI(r *http.Request, parts []string) (int
 		return 200, payload, "", nil, err
 	}
 	return 405, nil, "", nil, appError{405, "Method not allowed"}
+}
+
+func (s *server) dispatchExportDefinitionsAPI(r *http.Request, parts []string) (int, any, string, []byte, error) {
+	if len(parts) != 2 {
+		return 404, nil, "", nil, appError{404, "API route not found"}
+	}
+	if r.Method == http.MethodGet {
+		payload, err := s.templateExportDefinitionsPayload()
+		return 200, payload, "", nil, err
+	}
+	if r.Method == http.MethodPut {
+		var body struct {
+			Version     int                        `json:"version"`
+			OutputRoot  string                     `json:"output_root"`
+			Defaults    templateGenerateDefaults   `json:"defaults"`
+			Definitions []templateExportDefinition `json:"definitions"`
+			Rows        []templateDefinitionRow    `json:"rows"`
+		}
+		if err := readJSON(r, &body); err != nil {
+			return 0, nil, "", nil, err
+		}
+		defs := templateExportDefinitions{Version: body.Version, OutputRoot: body.OutputRoot, Defaults: body.Defaults, Definitions: body.Definitions}
+		if len(defs.Defaults.DefinitionIDs) == 0 {
+			if current, err := s.loadTemplateExportDefinitions(); err == nil {
+				defs.Defaults = current.Defaults
+			}
+		}
+		if len(defs.Definitions) == 0 && len(body.Rows) > 0 {
+			defs.Definitions = definitionsFromRows(body.Rows)
+		}
+		payload, err := s.saveTemplateExportDefinitions(defs)
+		return 200, payload, "", nil, err
+	}
+	return 405, nil, "", nil, appError{405, "Method not allowed"}
+}
+
+func (s *server) dispatchGenerateAPI(r *http.Request, parts []string) (int, any, string, []byte, error) {
+	if len(parts) != 3 || parts[2] != "check" {
+		return 404, nil, "", nil, appError{404, "API route not found"}
+	}
+	if r.Method != http.MethodPost {
+		return 405, nil, "", nil, appError{405, "Method not allowed"}
+	}
+	var body struct {
+		GenerationIDs []string `json:"generationIds"`
+		DefinitionIDs []string `json:"definitionIds"`
+		OutputRoot    string   `json:"outputRoot"`
+	}
+	if err := readJSON(r, &body); err != nil {
+		return 0, nil, "", nil, err
+	}
+	result, _, _, err := s.buildGenerateResult(body.GenerationIDs, body.DefinitionIDs, body.OutputRoot)
+	return 200, result, "", nil, err
 }
 
 func (s *server) handleStatic(w http.ResponseWriter, r *http.Request) {

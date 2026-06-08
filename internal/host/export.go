@@ -46,12 +46,13 @@ type exportSettings struct {
 }
 
 type exportFormatOptions struct {
-	TimeFormat              string `json:"time_format,omitempty" yaml:"time_format,omitempty"`
-	Timezone                string `json:"timezone,omitempty" yaml:"timezone,omitempty"`
-	IncludeSchema           *bool  `json:"include_schema,omitempty" yaml:"include_schema,omitempty"`
-	IncludeDiagnosticsSheet *bool  `json:"include_diagnostics_sheet,omitempty" yaml:"include_diagnostics_sheet,omitempty"`
-	SQLDialect              string `json:"sql_dialect,omitempty" yaml:"sql_dialect,omitempty"`
-	UpdatedAt               string `json:"updated_at,omitempty" yaml:"updated_at,omitempty"`
+	TimeFormat              string   `json:"time_format,omitempty" yaml:"time_format,omitempty"`
+	Timezone                string   `json:"timezone,omitempty" yaml:"timezone,omitempty"`
+	IncludeSchema           *bool    `json:"include_schema,omitempty" yaml:"include_schema,omitempty"`
+	IncludeDiagnosticsSheet *bool    `json:"include_diagnostics_sheet,omitempty" yaml:"include_diagnostics_sheet,omitempty"`
+	SQLDialect              string   `json:"sql_dialect,omitempty" yaml:"sql_dialect,omitempty"`
+	DefinitionIDs           []string `json:"definition_ids,omitempty" yaml:"definition_ids,omitempty"`
+	UpdatedAt               string   `json:"updated_at,omitempty" yaml:"updated_at,omitempty"`
 }
 
 type exportOptions struct {
@@ -60,6 +61,7 @@ type exportOptions struct {
 	IncludeSchema           bool
 	IncludeDiagnosticsSheet bool
 	SQLDialect              string
+	DefinitionIDs           []string
 }
 
 type exportDataset struct {
@@ -70,6 +72,7 @@ type exportDataset struct {
 	LogicalFormat        string
 	Options              exportOptions
 	Tables               map[string]exportTable
+	TemplateFiles        []namedFile
 	Summary              map[string]any
 	Diagnostics          []map[string]any
 }
@@ -81,6 +84,14 @@ type exportTable struct {
 
 func (s *server) exportSettingsFile() string {
 	return filepath.Join(s.root, "masterdata", "export_settings.yaml")
+}
+
+func (s *server) generateDefinitionsFile() string {
+	return filepath.Join(s.root, "masterdata", "generate_definitions.yaml")
+}
+
+func (s *server) generateTemplatesRoot() string {
+	return filepath.Join(s.root, "masterdata", "generate_templates")
 }
 
 func (s *server) loadExportSettings() (exportSettings, error) {
@@ -263,6 +274,9 @@ func applySavedExportOptions(options *exportOptions, saved exportFormatOptions) 
 	if saved.SQLDialect != "" {
 		options.SQLDialect = saved.SQLDialect
 	}
+	if len(saved.DefinitionIDs) > 0 {
+		options.DefinitionIDs = append([]string{}, saved.DefinitionIDs...)
+	}
 }
 
 func applyExplicitExportOptions(options *exportOptions, explicit map[string]any) {
@@ -296,6 +310,12 @@ func applyExplicitExportOptions(options *exportOptions, explicit map[string]any)
 	}
 	if v := stringValue(explicit["sqlDialect"], ""); v != "" {
 		options.SQLDialect = v
+	}
+	if values := stringSliceValue(explicit["definition_ids"]); len(values) > 0 {
+		options.DefinitionIDs = values
+	}
+	if values := stringSliceValue(explicit["definitionIds"]); len(values) > 0 {
+		options.DefinitionIDs = values
 	}
 }
 

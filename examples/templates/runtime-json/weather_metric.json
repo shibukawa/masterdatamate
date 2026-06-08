@@ -1,0 +1,20 @@
+[
+  {
+    "display_name": "Temperature",
+    "metric_id": "temperature",
+    "unit": "celsius",
+    "value_type": "decimal"
+  },
+  {
+    "display_name": "Humidity",
+    "metric_id": "humidity",
+    "unit": "percent",
+    "value_type": "integer"
+  },
+  {
+    "display_name": "Rainfall",
+    "metric_id": "rainfall",
+    "unit": "millimeter",
+    "value_type": "decimal"
+  }
+]

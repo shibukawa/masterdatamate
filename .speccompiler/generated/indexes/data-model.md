@@ -7,4 +7,4 @@
 - [Generation model](../../specs/data-model/generation-model.md) `generation-model`
 - [Generic master data model](../../specs/data-model/generic-master-data-model.md) `generic-master-data-model`
 - [Table schema model](../../specs/data-model/table-schema-model.md) `table-schema-model`
-- [Template export definition model](../../specs/data-model/template-export-definition-model.md) `template-export-definition-model`
+- [Template generation definition model](../../specs/data-model/template-export-definition-model.md) `template-export-definition-model`

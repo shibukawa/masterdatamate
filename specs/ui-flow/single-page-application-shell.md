@@ -16,7 +16,7 @@ The web service frontend is a single page application. The main editing route us
 
 The table editing shell presents active generation selection in the left pane only. Generation metadata editing is reached from an edit icon next to that sidebar generation selector, not from a peer navigation item mixed with table links.
 
-Schema editing is also reached from the left pane. It appears as a compact schema/settings action in the table navigation area, not as a normal table row and not as a primary top-bar destination. Template export definition editing is reached from the same project action area as export because it configures project-level generated artifacts rather than table schemas.
+Schema editing is also reached from the left pane. It appears as a compact schema/settings action in the table navigation area, not as a normal table row and not as a primary top-bar destination. Template generation definition editing is reached from the same project action area because it configures project-level generated artifacts rather than table schemas or runtime export data.
 
 Schema editing does not have separate application-level permissions or feature gating. Any user who can use the editing app can navigate to schema editing.
 
@@ -47,7 +47,7 @@ The table editing left sidebar is divided into three vertical flex regions: a fi
 | `/generations` | [Generation selection screen](../ui-screen/generation-selection-screen.md) | Later slice: choose active generations for preview/export and inspect current selection. |
 | `/generations/edit` | [Generation editing screen](../ui-screen/generation-editing-screen.md) | Create, rename, order, and edit generation metadata in a dedicated grid page. |
 | `/schemas/:tableId?` | [Schema editing screen](../ui-screen/schema-editing-screen.md) | Edit table schema definitions. |
-| `/exports/definitions` | [Template export definition screen](../ui-screen/template-export-definition-screen.md) | Edit project-level Pongo2 template export definitions. |
+| `/generate/definitions` | [Template export definition screen](../ui-screen/template-export-definition-screen.md) | Edit project-level Pongo2 template generation definitions. |
 
 ## Layout Rules
 
@@ -69,7 +69,7 @@ The table editing left sidebar is divided into three vertical flex regions: a fi
 - The schema/settings icon must have an accessible name and tooltip such as `Edit schemas` so users understand that it opens table schema editing, not a table record grid.
 - The schema/settings icon must not appear as a normal table row because that would visually compete with table choices.
 - A single project-level `Export` button appears in the left pane, preferably in the sidebar footer or project action area, visually separated from table rows.
-- A project-level `Export definitions` action appears near `Export` and navigates to `/exports/definitions`.
+- A project-level `Generate definitions` action appears in the project action area and navigates to `/generate/definitions`.
 - The `Export` button must not appear at the bottom of the right pane, inside a selected table panel, or as a table-specific action.
 - The left-pane `Export` button opens an export dialog instead of immediately writing files.
 - The export dialog collects the output destination, export format, and any export options required by [Export execution flow](../data-flow/export-execution-flow.md).
@@ -79,7 +79,7 @@ The table editing left sidebar is divided into three vertical flex regions: a fi
 - Secondary controls should live in top bars, side panels, drawers, or inspectors rather than reducing the grid's primary area.
 - Generation selection and schema editing are separate SPA views.
 - Schema editing uses a focused route entered from the left pane and keeps a clear return path to the previous table editing context.
-- Template export definition editing uses a focused route entered from the left pane and keeps a clear return path to the previous table editing context.
+- Template generation definition editing uses a focused route entered from the left pane and keeps a clear return path to the previous table editing context.
 - Generation metadata editing uses a focused route that feels modal-like relative to table editing: it temporarily replaces normal table navigation chrome, keeps a clear return path, and does not appear as a normal sidebar navigation destination.
 - Generation metadata editing must not be embedded inside the table data editing workspace. It uses a dedicated generation editing route with its own table-like grid.
 - On the generation editing route, the left pane must not show active generation selection or table navigation. It should show only a return/back control and minimal product context.
@@ -116,4 +116,4 @@ The table editing left sidebar is divided into three vertical flex regions: a fi
 
 ## Native-Language Summary
 
-WebService のUIはSPA。メイン編集画面は左に世代選択とテーブル名一覧、中央に `extable` を大きく置く2ペイン構成。世代選択は左ペインに一元化し、世代編集は世代セレクタ横の鉛筆アイコンから focused/modal-like な別ページへ遷移する。左サイドバーは flexbox で固定ヘッダー、可変テーブル一覧、固定フッターの3パートに分け、テーブルが多い場合は中央のテーブル一覧だけをスクロールさせる。スキーマ編集も左ペインの管理アイコンから別ページへ遷移し、通常のテーブル行としては表示しない。Export はテーブル単位ではなくプロジェクト全体の操作なので左ペインのプロジェクト操作として1つだけ表示し、押下後に出力先を選ぶダイアログを開く。Pongo2 テンプレート export の定義編集は `Export definitions` から `/exports/definitions` に遷移する。
+WebService のUIはSPA。メイン編集画面は左に世代選択とテーブル名一覧、中央に `extable` を大きく置く2ペイン構成。世代選択は左ペインに一元化し、世代編集は世代セレクタ横の鉛筆アイコンから focused/modal-like な別ページへ遷移する。左サイドバーは flexbox で固定ヘッダー、可変テーブル一覧、固定フッターの3パートに分け、テーブルが多い場合は中央のテーブル一覧だけをスクロールさせる。スキーマ編集も左ペインの管理アイコンから別ページへ遷移し、通常のテーブル行としては表示しない。Export はテーブル単位ではなくプロジェクト全体の操作なので左ペインのプロジェクト操作として1つだけ表示し、押下後に出力先を選ぶダイアログを開く。Pongo2 テンプレート generate の定義編集は `Generate definitions` から `/generate/definitions` に遷移する。

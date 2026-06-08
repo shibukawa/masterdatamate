@@ -3,6 +3,7 @@ module github.com/masterdatamate/masterdatamate
 go 1.25.0
 
 require (
+	github.com/flosch/pongo2/v6 v6.1.0
 	github.com/wailsapp/wails/v2 v2.8.1
 	gopkg.in/yaml.v3 v3.0.1
 	modernc.org/sqlite v1.51.0

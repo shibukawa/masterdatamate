@@ -1,0 +1,57 @@
+{
+  "format": "json",
+  "generationIds": [
+    "0000_initial"
+  ],
+  "logicalFormat": "json",
+  "orderedGenerationIds": [
+    "0000_initial"
+  ],
+  "summary": {
+    "diagnosticCount": 0,
+    "recordCount": 10,
+    "tableCount": 4
+  },
+  "tables": {
+    "region": {
+      "fields": [
+        "region_id",
+        "display_name",
+        "timezone",
+        "latitude",
+        "longitude"
+      ],
+      "recordCount": 3
+    },
+    "weather_metric": {
+      "fields": [
+        "metric_id",
+        "display_name",
+        "unit",
+        "value_type"
+      ],
+      "recordCount": 3
+    },
+    "weather_provider": {
+      "fields": [
+        "provider_id",
+        "display_name",
+        "base_url",
+        "enabled"
+      ],
+      "recordCount": 1
+    },
+    "weather_station": {
+      "fields": [
+        "station_id",
+        "region_id",
+        "display_name",
+        "provider_station_id",
+        "latitude",
+        "longitude",
+        "enabled"
+      ],
+      "recordCount": 3
+    }
+  }
+}

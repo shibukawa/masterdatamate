@@ -1,0 +1,33 @@
+system_name: error_message
+business_name: Error message
+primary_key: [error_code]
+export: false
+comment: Error catalog used to generate Go error definitions for the weather ingestion service.
+fields:
+  - system_name: error_code
+    business_name: Error code
+    type: string
+    required: true
+    export: true
+  - system_name: category
+    business_name: Category
+    type: constant
+    required: true
+    export: true
+    constants: [config, provider, database]
+  - system_name: http_status
+    business_name: HTTP status
+    type: integer
+    required: true
+    export: true
+  - system_name: message
+    business_name: Message
+    type: string
+    required: true
+    export: true
+  - system_name: retryable
+    business_name: Retryable
+    type: boolean
+    required: true
+    export: true
+    default_value: false

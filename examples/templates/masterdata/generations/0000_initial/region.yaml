@@ -1,0 +1,23 @@
+region:
+  - key: tokyo
+    name: Tokyo
+    data:
+      display_name: Tokyo
+      timezone: Asia/Tokyo
+      latitude: 35.681236
+      longitude: 139.767125
+  - key: sapporo
+    name: Sapporo
+    data:
+      display_name: Sapporo
+      timezone: Asia/Tokyo
+      latitude: 43.068661
+      longitude: 141.350755
+  - key: naha
+    name: Naha
+    data:
+      display_name: Naha
+      timezone: Asia/Tokyo
+      latitude: 26.212401
+      longitude: 127.680932
+

@@ -1,0 +1,23 @@
+error_message:
+  - key: region_not_configured
+    name: Region not configured
+    data:
+      category: config
+      http_status: 400
+      message: Region is not configured for weather ingestion.
+      retryable: false
+  - key: provider_unavailable
+    name: Provider unavailable
+    data:
+      category: provider
+      http_status: 503
+      message: Weather provider is temporarily unavailable.
+      retryable: true
+  - key: observation_write_failed
+    name: Observation write failed
+    data:
+      category: database
+      http_status: 500
+      message: Weather observation could not be written.
+      retryable: true
+

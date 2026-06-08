@@ -1,38 +1,38 @@
 ---
 id: "pongo2-template-export-adapter"
 type: "batch-component"
-title: "Pongo2 template export adapter"
-aliases: ["template export adapter", "code generation export adapter"]
-tags: ["export", "template", "pongo2", "adapter", "code-generation"]
+title: "Pongo2 template generation adapter"
+aliases: ["template generation adapter", "code generation adapter"]
+tags: ["generate", "template", "pongo2", "adapter", "code-generation"]
 facts:
   lifecycle.status: "blueprint"
 ---
 
-# Pongo2 template export adapter
+# Pongo2 template generation adapter
 
 ## Summary
 
-The Pongo2 template export adapter renders project-defined template export definitions against the same normalized, validated, generation-merged dataset used by ordinary export backends. It is intended for code generation and text artifact generation, such as generating Go constants, error types, localization files, or backend-specific registries from master data.
+The Pongo2 template generation adapter renders project-defined template generation definitions against the same normalized, validated, generation-merged dataset used by ordinary export backends. It is intended for code generation and text artifact generation, such as generating Go constants, error types, localization files, SQL DDL, or backend-specific registries from master data.
 
-The adapter is part of the shared export service boundary. HTTP, Wails, and CLI hosts must invoke the same adapter implementation so template parsing, context shape, diagnostics, and path safety are consistent.
+The adapter is part of the shared data preparation and generation boundary. GUI, Wails, and CLI hosts must invoke the same adapter implementation so template parsing, context shape, diagnostics, and path safety are consistent.
 
 ## Responsibilities
 
-- Load selected template export definitions from `masterdata/export_definitions.yaml`.
-- Load template files from `masterdata/export_templates/`.
+- Load selected template generation definitions from `masterdata/generate_definitions.yaml`.
+- Load template files from `masterdata/generate_templates/`.
 - Parse all Pongo2 templates and rendered output path templates before writing artifacts.
 - Build deterministic render contexts for `project`, `table`, `record`, and `group` scopes.
 - Render text files into a temporary artifact directory.
 - Run optional post-render formatters such as `gofmt`.
 - Report definition, template, render, path, duplicate-output, and formatter diagnostics.
-- Return generated files to the host as a multi-file export artifact.
+- Return generated files to the host for atomic writes under the resolved generation output root.
 
 ## Inputs
 
 - Validated merged export dataset from [Generation merge and export flow](../data-flow/generation-merge-and-export-flow.md).
 - Export-effective schemas and records after table and field export flags are applied.
 - Selected definition IDs or the default enabled definition set.
-- Resolved template export options from [Export settings model](../data-model/export-settings-model.md) and request or CLI flags.
+- Resolved generation options from [Template export definition model](../data-model/template-export-definition-model.md) and request or CLI flags.
 - Project workspace root.
 
 ## Outputs
@@ -44,7 +44,7 @@ The adapter is part of the shared export service boundary. HTTP, Wails, and CLI 
 ## Render Pipeline
 
 1. Resolve selected definition IDs.
-2. Load `masterdata/export_definitions.yaml`.
+2. Load `masterdata/generate_definitions.yaml`.
 3. Validate definition identity, scope, table references, group references, template source, and output path templates.
 4. Load external template files.
 5. Parse all Pongo2 template sources and output path templates.
@@ -57,7 +57,7 @@ The adapter is part of the shared export service boundary. HTTP, Wails, and CLI 
 12. Run optional formatter.
 13. Detect duplicate outputs and apply the definition overwrite policy.
 14. Write files to a temporary artifact directory.
-15. Return artifact metadata to the host for ZIP packaging, Wails delivery, or CLI atomic directory rename.
+15. Return generated file metadata to the host for atomic file writes.
 
 ## Rules / Constraints
 
@@ -68,24 +68,24 @@ The adapter is part of the shared export service boundary. HTTP, Wails, and CLI 
 - The adapter must not expose Go objects with mutating methods to templates.
 - Template parsing for every selected definition must finish before any output file is written.
 - Output path rendering must finish for every render job before any output file is written when practical, so duplicate paths are found early.
-- Rendered output paths must be relative, clean paths under the output root.
+- Rendered output paths must be relative, clean paths under the resolved generation output root.
 - Generated files must be deterministic for the same workspace content, generation IDs, selected definitions, options, and tool version.
-- Definition order in `export_definitions.yaml` is the default render order.
+- Definition order in `generate_definitions.yaml` is the default render order.
 - When multiple definitions render the same output path and no overwrite policy allows it, the adapter reports a blocking diagnostic and writes no artifacts.
-- `overwrite: replace` allows a later render job to replace an earlier generated file in the same export run.
+- `overwrite: replace` allows a later render job to replace an earlier generated file in the same generate run.
 - `overwrite: skip` keeps the first generated file and records a warning for skipped later jobs.
 - `formatter: gofmt` may be used only for generated Go files. Formatter failure blocks the affected definition when `required: true`.
-- The adapter does not create directories outside the export artifact root.
-- The adapter does not update `masterdata/export_definitions.yaml` or template files during export.
-- Template export respects table `export` flags by default. Definitions targeting `export: false` tables are invalid unless a later explicit internal-export option is specified.
-- Template export respects field `export` flags by default. Definitions may opt into non-exported fields only with `include_non_exported_fields: true`.
+- The adapter does not create directories outside the generation output root.
+- The adapter does not update `masterdata/generate_definitions.yaml` or template files during generation.
+- Template generation respects table `export` flags by default. Definitions targeting `export: false` tables are invalid unless a later explicit internal-generation option is specified.
+- Template generation respects field `export` flags by default. Definitions may opt into non-exported fields only with `include_non_exported_fields: true`.
 - External references exposed in contexts use stored primary-key values. Display labels are optional metadata, not canonical values.
 
 ## Diagnostics
 
 Diagnostic codes should distinguish:
 
-- Missing or invalid `export_definitions.yaml`.
+- Missing or invalid `generate_definitions.yaml`.
 - Unknown definition ID.
 - Duplicate definition ID.
 - Missing target table.
@@ -102,10 +102,8 @@ Diagnostic codes should distinguish:
 ## Dependencies
 
 - [Template export definition model](../data-model/template-export-definition-model.md)
-- [Export backend adapters](export-backend-adapters.md)
-- [Export execution flow](../data-flow/export-execution-flow.md)
-- [Go CLI export runner](../batch-component/go-cli-export-runner.md)
+- [Go CLI generate runner](../batch-component/go-cli-generate-runner.md)
 
 ## Native-Language Summary
 
-Pongo2 テンプレート export の実行アダプタ。通常の export と同じ検証済み・世代統合済みデータを入力にし、`masterdata/export_definitions.yaml` と `masterdata/export_templates/` のテンプレートから複数テキストファイルを生成する。出力パスは必ず export 先ディレクトリ配下に制限し、重複パスやテンプレートエラー、`gofmt` エラーは診断として返す。Web/Wails/CLI は同じアダプタを使う。
+Pongo2 テンプレート生成の実行アダプタ。通常の export と同じ検証済み・世代統合済みデータを入力にし、`masterdata/generate_definitions.yaml` と `masterdata/generate_templates/` のテンプレートから複数テキストファイルを生成する。出力パスは必ず generation output root 配下に制限し、重複パスやテンプレートエラー、`gofmt` エラーは診断として返す。GUI/Wails/CLI は同じアダプタを使う。

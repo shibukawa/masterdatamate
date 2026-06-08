@@ -1,0 +1,8 @@
+[
+  {
+    "base_url": "https://api.example.test/weather",
+    "display_name": "Sample Open Weather",
+    "enabled": true,
+    "provider_id": "sample_open_weather"
+  }
+]

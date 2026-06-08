@@ -1,0 +1,29 @@
+weather_station:
+  - key: tokyo_central
+    name: Tokyo Central
+    data:
+      region_id: tokyo
+      display_name: Tokyo Central Station
+      provider_station_id: "44132"
+      latitude: 35.6895
+      longitude: 139.6917
+      enabled: true
+  - key: sapporo_odori
+    name: Sapporo Odori
+    data:
+      region_id: sapporo
+      display_name: Sapporo Odori Station
+      provider_station_id: "47412"
+      latitude: 43.0618
+      longitude: 141.3545
+      enabled: true
+  - key: naha_port
+    name: Naha Port
+    data:
+      region_id: naha
+      display_name: Naha Port Station
+      provider_station_id: "47936"
+      latitude: 26.2144
+      longitude: 127.6792
+      enabled: true
+

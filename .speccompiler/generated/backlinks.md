@@ -4,15 +4,24 @@
 
 - links_to from Export backend adapters
 - depends_on from Export backend adapters
-- depends_on from Pongo2 template export adapter
 - links_to from Export execution flow
 - uses_component from Export execution flow
 - links_to from Export execution flow
 - relates_to from Export execution flow
 - depends_on from Export settings model
-- depends_on from Template export definition model
 - links_to from Go embedded web server host
 - relates_to from Go embedded web server host
+
+## Go CLI generate runner (go-cli-generate-runner)
+
+- relates_to from Go CLI export runner
+- links_to from Export backend adapters
+- depends_on from Export backend adapters
+- depends_on from Pongo2 template generation adapter
+- relates_to from Export execution flow
+- depends_on from Export settings model
+- depends_on from Template generation definition model
+- depends_on from Template generation definition screen
 
 ## Agent tool contract (agent-tool-contract)
 
@@ -51,7 +60,6 @@
 - links_to from Go CLI export runner
 - uses_component from Go CLI export runner
 - relates_to from Go CLI export runner
-- depends_on from Pongo2 template export adapter
 - uses_component from Export execution flow
 - relates_to from Export execution flow
 - uses_component from Generation merge and export flow
@@ -72,20 +80,17 @@
 - depends_on from Web service host
 - uses_component from Table editing workspace
 
-## Pongo2 template export adapter (pongo2-template-export-adapter)
+## Pongo2 template generation adapter (pongo2-template-export-adapter)
 
-- uses_component from Go CLI export runner
-- relates_to from Go CLI export runner
-- depends_on from Export backend adapters
-- uses_component from Export execution flow
-- relates_to from Export execution flow
-- depends_on from Template export definition model
-- depends_on from Template export definition screen
+- relates_to from Go CLI generate runner
+- depends_on from Template generation definition model
+- depends_on from Template generation definition screen
 
 ## Schema validation engine (schema-validation-engine)
 
 - uses_component from Go CLI export runner
 - relates_to from Go CLI export runner
+- relates_to from Go CLI generate runner
 - depends_on from Agent tool contract
 - depends_on from AI assistant service
 - links_to from Export backend adapters
@@ -134,15 +139,13 @@
 - depends_on from AI assistant service
 - links_to from Export backend adapters
 - depends_on from Export backend adapters
-- depends_on from Pongo2 template export adapter
 - links_to from Generation merge and export flow
 - invokes from Generation merge and export flow
 - relates_to from Generation merge and export flow
 - depends_on from Export settings model
-- depends_on from Template export definition model
+- depends_on from Template generation definition model
 - relates_to from Go embedded web server host
 - links_to from Single page application shell
-- depends_on from Template export definition screen
 
 ## Generation analysis flow (generation-analysis-flow)
 
@@ -183,11 +186,12 @@
 
 - uses_component from Go CLI export runner
 - relates_to from Go CLI export runner
+- relates_to from Go CLI generate runner
 - depends_on from Agent tool contract
 - depends_on from AI assistant service
 - links_to from Export backend adapters
 - relates_to from HTML editor plugin runtime
-- links_to from Pongo2 template export adapter
+- links_to from Pongo2 template generation adapter
 - depends_on from Schema validation engine
 - depends_on from Shared web editing frontend
 - uses_component from Export execution flow
@@ -198,7 +202,7 @@
 - reads from Canonical YAML file layout
 - reads from Generation model
 - relates_to from Generic master data model
-- depends_on from Template export definition model
+- depends_on from Template generation definition model
 - relates_to from Product overview
 - relates_to from Go embedded web server host
 - relates_to from Web service host
@@ -249,7 +253,7 @@
 - reads from Generic master data model
 - relates_to from Generic master data model
 - reads from Table schema model
-- depends_on from Template export definition model
+- depends_on from Template generation definition model
 - depends_on from Go embedded web server host
 - depends_on from Wails desktop host
 - relates_to from Web service host
@@ -271,10 +275,8 @@
 - uses_component from Go CLI export runner
 - relates_to from Go CLI export runner
 - depends_on from Export backend adapters
-- links_to from Pongo2 template export adapter
 - uses_component from Export execution flow
 - invokes from Export execution flow
-- links_to from Export execution flow
 - relates_to from Export execution flow
 - reads from Canonical YAML file layout
 - relates_to from Table editing workspace
@@ -324,27 +326,22 @@
 - reads from Editor plugin model
 - reads from Generic master data model
 - relates_to from Generic master data model
-- depends_on from Template export definition model
+- depends_on from Template generation definition model
 - relates_to from Product overview
 - uses_component from Schema editing screen
 - relates_to from Table editing workspace
-- depends_on from Template export definition screen
+- depends_on from Template generation definition screen
 
-## Template export definition model (template-export-definition-model)
+## Template generation definition model (template-export-definition-model)
 
-- uses_component from Go CLI export runner
-- relates_to from Go CLI export runner
-- links_to from Export backend adapters
-- depends_on from Export backend adapters
-- links_to from Pongo2 template export adapter
-- depends_on from Pongo2 template export adapter
-- uses_component from Export execution flow
-- relates_to from Export execution flow
+- relates_to from Go CLI generate runner
+- links_to from Pongo2 template generation adapter
+- links_to from Pongo2 template generation adapter
+- depends_on from Pongo2 template generation adapter
 - reads from Canonical YAML file layout
 - relates_to from Canonical YAML file layout
-- links_to from Export settings model
 - depends_on from Export settings model
-- depends_on from Template export definition screen
+- depends_on from Template generation definition screen
 
 ## Product overview (product-overview)
 
@@ -367,6 +364,8 @@
 - uses_component from Go CLI export runner
 - links_to from Go CLI export runner
 - relates_to from Go CLI export runner
+- links_to from Go CLI generate runner
+- relates_to from Go CLI generate runner
 - depends_on from AI assistant service
 - depends_on from Shared web editing frontend
 - relates_to from Product overview
@@ -428,7 +427,7 @@
 - uses_component from Generation selection screen
 - uses_component from Schema editing screen
 - uses_component from Table editing workspace
-- depends_on from Template export definition screen
+- depends_on from Template generation definition screen
 
 ## Generation editing screen (generation-editing-screen)
 
@@ -496,8 +495,8 @@
 - relates_to from In-app AI assistant panel
 - relates_to from Schema editing screen
 
-## Template export definition screen (template-export-definition-screen)
+## Template generation definition screen (template-export-definition-screen)
 
-- depends_on from Template export definition model
+- depends_on from Template generation definition model
 - links_to from Single page application shell
 - relates_to from Single page application shell

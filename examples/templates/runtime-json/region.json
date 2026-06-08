@@ -1,0 +1,23 @@
+[
+  {
+    "display_name": "Tokyo",
+    "latitude": 35.681236,
+    "longitude": 139.767125,
+    "region_id": "tokyo",
+    "timezone": "Asia/Tokyo"
+  },
+  {
+    "display_name": "Sapporo",
+    "latitude": 43.068661,
+    "longitude": 141.350755,
+    "region_id": "sapporo",
+    "timezone": "Asia/Tokyo"
+  },
+  {
+    "display_name": "Naha",
+    "latitude": 26.212401,
+    "longitude": 127.680932,
+    "region_id": "naha",
+    "timezone": "Asia/Tokyo"
+  }
+]

@@ -12,7 +12,7 @@ facts:
 
 ## Summary
 
-Export backend adapters convert validated merged master data into backend-specific artifacts. The logical formats are CSV, Excel CSV, JSON, YAML, SQL, Excel workbook, SQLite, NDJSON, and Pongo2 template export. Web delivery may package multi-file formats as ZIP archives, while CLI delivery writes multi-file formats directly to an output directory.
+Export backend adapters convert validated merged master data into backend-specific runtime data artifacts. The logical formats are CSV, Excel CSV, JSON, YAML, SQL, Excel workbook, SQLite, and NDJSON. Web delivery may package multi-file formats as ZIP archives, while CLI delivery writes multi-file formats directly to an output directory. Pongo2 source generation is handled by [Go CLI generate runner](../batch-component/go-cli-generate-runner.md), not by export formats.
 
 ## Scope
 
@@ -52,11 +52,8 @@ Export backend adapters convert validated merged master data into backend-specif
 - SQL export emits `CREATE TABLE IF NOT EXISTS`, `TRUNCATE`, and `INSERT` statements for a target database dialect; dialect support is backend-specific.
 - Excel export creates one worksheet per exported table and may include manifest or diagnostics worksheets.
 - NDJSON export is optional and intended for large-data or ingestion workflows.
-- Template export renders project-defined Pongo2 templates from [Template export definition model](../data-model/template-export-definition-model.md) into one or more text files.
 - Web API downloads may wrap CSV, Excel CSV, JSON, YAML, and NDJSON multi-file outputs in ZIP archives.
-- Web API downloads may wrap template export outputs in a ZIP archive.
 - CLI output must not wrap CSV, Excel CSV, JSON, YAML, or NDJSON in ZIP archives; it writes table files to a directory so callers can package them separately.
-- CLI output must not wrap template export outputs in ZIP archives; it writes generated files to a directory.
 - Adapters receive already-resolved format options. They must not read or write persisted export settings directly.
 - Backend-specific behavior must not change canonical data semantics.
 - Adapter output must be host-independent: web API, Wails, and CLI callers receive the same logical artifact for the same normalized input, format, and options.
@@ -72,10 +69,9 @@ Export backend adapters convert validated merged master data into backend-specif
 - [Table schema model](../data-model/table-schema-model.md)
 - [Schema validation engine](schema-validation-engine.md)
 - [Export settings model](../data-model/export-settings-model.md)
-- [Template export definition model](../data-model/template-export-definition-model.md)
-- [Pongo2 template export adapter](pongo2-template-export-adapter.md)
 - [Export execution flow](../data-flow/export-execution-flow.md)
 - [Go CLI export runner](../batch-component/go-cli-export-runner.md)
+- [Go CLI generate runner](../batch-component/go-cli-generate-runner.md)
 
 ## Related Documents
 
@@ -83,4 +79,4 @@ Export backend adapters convert validated merged master data into backend-specif
 
 ## Native-Language Summary
 
-検証済み・世代統合済みのデータをCSV、Excel CSV、JSON、YAML、SQL、Excel workbook、SQLite、NDJSON、Pongo2 テンプレート export などに変換する境界。標準CSVはUTF-8 BOMなし/LF/ヘッダーあり/RFC 4180相当のダブルクオートエスケープで、boolean は `true/false`。Excel CSVはUTF-8 BOMつきで、boolean は `TRUE/FALSE`、Excelが数式扱いする `=`、`+`、`-`、`@` 始まりの文字列に先頭アポストロフィを付けて安全化する。日時は既定 `iso`、必要に応じて `epoch-sec`、`epoch-ms`、`iso-local` を選べる。`iso-local` など timezone 依存の変換では任意の timezone 指定を使い、省略時は実行環境のローカル timezone を使う。テンプレート export は `masterdata/export_definitions.yaml` と `masterdata/export_templates/` から任意テキストを生成する。Web API のダウンロードでは複数ファイル形式を ZIP に包めるが、Go CLI は ZIP にせず出力ディレクトリへ直接書く。Web API、Wails、Go CLI は同じアダプタ境界を使う。外部参照は保存済みの主キー値として扱い、表示名は出力しない。各バックエンド固有の制約はアダプタ側に閉じ込める。
+検証済み・世代統合済みのデータをCSV、Excel CSV、JSON、YAML、SQL、Excel workbook、SQLite、NDJSONなどの実行時データ成果物に変換する境界。標準CSVはUTF-8 BOMなし/LF/ヘッダーあり/RFC 4180相当のダブルクオートエスケープで、boolean は `true/false`。Excel CSVはUTF-8 BOMつきで、boolean は `TRUE/FALSE`、Excelが数式扱いする `=`、`+`、`-`、`@` 始まりの文字列に先頭アポストロフィを付けて安全化する。日時は既定 `iso`、必要に応じて `epoch-sec`、`epoch-ms`、`iso-local` を選べる。Web API のダウンロードでは複数ファイル形式を ZIP に包めるが、Go CLI は ZIP にせず出力ディレクトリへ直接書く。Pongo2 テンプレートによる Go や SQL などのソース生成は `masterdatamate generate` が扱う。Web API、Wails、Go CLI は同じアダプタ境界を使う。外部参照は保存済みの主キー値として扱い、表示名は出力しない。各バックエンド固有の制約はアダプタ側に閉じ込める。

@@ -1,0 +1,28 @@
+system_name: weather_provider
+business_name: Weather provider
+primary_key: [provider_id]
+export: true
+comment: Runtime API provider configuration.
+fields:
+  - system_name: provider_id
+    business_name: Provider ID
+    type: string
+    required: true
+    export: true
+  - system_name: display_name
+    business_name: Display name
+    type: string
+    required: true
+    export: true
+  - system_name: base_url
+    business_name: Base URL
+    type: string
+    required: true
+    export: true
+  - system_name: enabled
+    business_name: Enabled
+    type: boolean
+    required: true
+    export: true
+    default_value: true
+

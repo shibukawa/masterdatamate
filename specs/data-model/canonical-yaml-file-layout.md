@@ -13,7 +13,7 @@ facts:
 
 ## Summary
 
-Canonical master data lives under `masterdata/`. Schemas live under `masterdata/schema`, generation data lives under `masterdata/generations`, project-level export defaults may live in `masterdata/export_settings.yaml`, and project-defined template exports may live in `masterdata/export_definitions.yaml` plus `masterdata/export_templates/`. The default data file pattern is one YAML file per table, but a parent table file may also embed records for dependent child tables.
+Canonical master data lives under `masterdata/`. Schemas live under `masterdata/schema`, generation data lives under `masterdata/generations`, project-level export defaults may live in `masterdata/export_settings.yaml`, and project-defined template generation settings may live in `masterdata/generate_definitions.yaml` plus `masterdata/generate_templates/`. The default data file pattern is one YAML file per table, but a parent table file may also embed records for dependent child tables.
 
 ## Fields
 
@@ -22,8 +22,8 @@ Canonical master data lives under `masterdata/`. Schemas live under `masterdata/
 | schema_root | path | yes | `masterdata/schema`. Contains table schema definitions. |
 | generations_root | path | yes | `masterdata/generations`. Contains generation datasets. |
 | export_settings_file | path | no | `masterdata/export_settings.yaml`. Contains project-level defaults for export formats. |
-| export_definitions_file | path | no | `masterdata/export_definitions.yaml`. Contains project-level Pongo2 template export definitions. |
-| export_templates_root | path | no | `masterdata/export_templates`. Contains external Pongo2 template files referenced by export definitions. |
+| generate_definitions_file | path | no | `masterdata/generate_definitions.yaml`. Contains project-level Pongo2 template generation definitions. |
+| generate_templates_root | path | no | `masterdata/generate_templates`. Contains external Pongo2 template files referenced by generation definitions. |
 | generation_id | string | yes | Generation folder or generation key under `masterdata/generations`. |
 | generation_metadata | object | yes | Generation index, output flag, path name, description, and derived folder naming settings. |
 | table_file | path | yes | YAML file named after the primary table, such as `org.yaml`. |
@@ -46,8 +46,8 @@ Canonical master data lives under `masterdata/`. Schemas live under `masterdata/
 ```text
 masterdata/
   export_settings.yaml
-  export_definitions.yaml
-  export_templates/
+  generate_definitions.yaml
+  generate_templates/
     go/
       error_constants.go.pongo2
   schema/
@@ -202,8 +202,8 @@ Each item in `children` declares the child `table`, child `key`, optional child 
 - `masterdata/schema` is the canonical schema root.
 - `masterdata/generations` is the canonical generation data root.
 - `masterdata/export_settings.yaml` is the optional canonical project-level export settings file.
-- `masterdata/export_definitions.yaml` is the optional canonical project-level template export definition file.
-- `masterdata/export_templates` is the optional canonical template source directory for external template files.
+- `masterdata/generate_definitions.yaml` is the optional canonical project-level template generation definition file.
+- `masterdata/generate_templates` is the optional canonical template source directory for external template files.
 - The first runnable slice reads and writes only `masterdata/generations/0000_initial`.
 - Each generation folder contains `_config.yaml`.
 - Missing or invalid `_config.yaml` is a blocking error; the table editor must not open.
@@ -237,8 +237,8 @@ Each item in `children` declares the child `table`, child `key`, optional child 
 - Generation duplication must not modify the source generation folder or files.
 - Generation analysis reads generation folders, table YAML, and schemas but writes no files.
 - Export settings reads and writes are scoped to `masterdata/export_settings.yaml`.
-- Template export definition reads and writes are scoped to `masterdata/export_definitions.yaml`.
-- Template export template files are read from `masterdata/export_templates` during export.
+- Template generation definition reads and writes are scoped to `masterdata/generate_definitions.yaml`.
+- Template generation template files are read from `masterdata/generate_templates` during generate.
 - Generation deletion removes only selected validated generation folders under `masterdata/generations`.
 - Generation deletion must not follow symlinks outside `masterdata/generations`.
 - Generation deletion must leave at least one valid generation unless a separate project reset feature is later specified.
@@ -270,7 +270,7 @@ Each item in `children` declares the child `table`, child `key`, optional child 
 - Normalized in-memory table records.
 - YAML files under `masterdata/generations`.
 - Export settings YAML at `masterdata/export_settings.yaml`.
-- Template export definitions YAML at `masterdata/export_definitions.yaml`.
+- Template generation definitions YAML at `masterdata/generate_definitions.yaml`.
 
 ## Related Requirements
 
@@ -284,4 +284,4 @@ Each item in `children` declares the child `table`, child `key`, optional child 
 
 ## Native-Language Summary
 
-正本は `masterdata/schema` と `masterdata/generations` に置き、エクスポートの形式別既定値は任意の `masterdata/export_settings.yaml` に置く。Pongo2 テンプレート export 定義は任意の `masterdata/export_definitions.yaml` に置き、外部テンプレートは `masterdata/export_templates/` 配下に置く。初期スライスでは `masterdata/generations/0000_initial` だけを使う。各世代フォルダには `_config.yaml` を置く。データYAMLは `<table>:` 配下に `key/name/data/children` を持つレコード配列として表現する。永続世代マージや世代複製で作成されるフォルダも同じ正本レイアウトを使い、元世代には書き込まない。Analyze は読み取り専用で件数や診断を返す。世代削除は選択された世代フォルダだけを対象にし、少なくとも1つの有効な世代を残す。
+正本は `masterdata/schema` と `masterdata/generations` に置き、エクスポートの形式別既定値は任意の `masterdata/export_settings.yaml` に置く。Pongo2 テンプレート generate 定義は任意の `masterdata/generate_definitions.yaml` に置き、外部テンプレートは `masterdata/generate_templates/` 配下に置く。初期スライスでは `masterdata/generations/0000_initial` だけを使う。各世代フォルダには `_config.yaml` を置く。データYAMLは `<table>:` 配下に `key/name/data/children` を持つレコード配列として表現する。永続世代マージや世代複製で作成されるフォルダも同じ正本レイアウトを使い、元世代には書き込まない。Analyze は読み取り専用で件数や診断を返す。世代削除は選択された世代フォルダだけを対象にし、少なくとも1つの有効な世代を残す。

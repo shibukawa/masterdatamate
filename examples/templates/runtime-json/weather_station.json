@@ -1,0 +1,29 @@
+[
+  {
+    "display_name": "Tokyo Central Station",
+    "enabled": true,
+    "latitude": 35.6895,
+    "longitude": 139.6917,
+    "provider_station_id": "44132",
+    "region_id": "tokyo",
+    "station_id": "tokyo_central"
+  },
+  {
+    "display_name": "Sapporo Odori Station",
+    "enabled": true,
+    "latitude": 43.0618,
+    "longitude": 141.3545,
+    "provider_station_id": "47412",
+    "region_id": "sapporo",
+    "station_id": "sapporo_odori"
+  },
+  {
+    "display_name": "Naha Port Station",
+    "enabled": true,
+    "latitude": 26.2144,
+    "longitude": 127.6792,
+    "provider_station_id": "47936",
+    "region_id": "naha",
+    "station_id": "naha_port"
+  }
+]

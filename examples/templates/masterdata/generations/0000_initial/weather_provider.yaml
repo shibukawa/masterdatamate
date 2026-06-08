@@ -1,0 +1,8 @@
+weather_provider:
+  - key: sample_open_weather
+    name: Sample Open Weather
+    data:
+      display_name: Sample Open Weather
+      base_url: https://api.example.test/weather
+      enabled: true
+

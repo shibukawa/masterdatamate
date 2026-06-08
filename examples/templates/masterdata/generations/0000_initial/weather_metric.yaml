@@ -1,0 +1,20 @@
+weather_metric:
+  - key: temperature
+    name: Temperature
+    data:
+      display_name: Temperature
+      unit: celsius
+      value_type: decimal
+  - key: humidity
+    name: Humidity
+    data:
+      display_name: Humidity
+      unit: percent
+      value_type: integer
+  - key: rainfall
+    name: Rainfall
+    data:
+      display_name: Rainfall
+      unit: millimeter
+      value_type: decimal
+

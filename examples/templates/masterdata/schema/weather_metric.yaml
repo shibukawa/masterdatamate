@@ -1,0 +1,28 @@
+system_name: weather_metric
+business_name: Weather metric
+primary_key: [metric_id]
+export: true
+comment: Runtime metric configuration collected for each station.
+fields:
+  - system_name: metric_id
+    business_name: Metric ID
+    type: string
+    required: true
+    export: true
+  - system_name: display_name
+    business_name: Display name
+    type: string
+    required: true
+    export: true
+  - system_name: unit
+    business_name: Unit
+    type: string
+    required: true
+    export: true
+  - system_name: value_type
+    business_name: Value type
+    type: constant
+    required: true
+    export: true
+    constants: [decimal, integer]
+

@@ -36,6 +36,27 @@
   gap: 8px;
 }
 
+.outputRootField {
+  align-items: center;
+  display: grid;
+  gap: 6px;
+  min-width: 320px;
+}
+
+.outputRootField span {
+  color: #536071;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.outputRootField input {
+  border: 1px solid #cfd8e3;
+  border-radius: 7px;
+  font: inherit;
+  min-height: 34px;
+  padding: 6px 10px;
+}
+
 .primary {
   background: #2563eb;
   border-color: #2563eb;

@@ -1,0 +1,45 @@
+system_name: weather_station
+business_name: Weather station
+primary_key: [station_id]
+export: true
+comment: Runtime station configuration used by the weather ingestion job.
+fields:
+  - system_name: station_id
+    business_name: Station ID
+    type: string
+    required: true
+    export: true
+  - system_name: region_id
+    business_name: Region
+    type: external_reference
+    required: true
+    export: true
+    reference:
+      table: region
+  - system_name: display_name
+    business_name: Display name
+    type: string
+    required: true
+    export: true
+  - system_name: provider_station_id
+    business_name: Provider station ID
+    type: string
+    required: true
+    export: true
+  - system_name: latitude
+    business_name: Latitude
+    type: decimal
+    required: true
+    export: true
+  - system_name: longitude
+    business_name: Longitude
+    type: decimal
+    required: true
+    export: true
+  - system_name: enabled
+    business_name: Enabled
+    type: boolean
+    required: true
+    export: true
+    default_value: true
+

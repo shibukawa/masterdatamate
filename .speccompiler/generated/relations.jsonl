@@ -5,8 +5,6 @@
 {"source_id": "go-cli-export-runner", "target_id": "generation-merge-and-export-flow", "relation": "uses_component", "section": "Components", "target_path": "specs/data-flow/generation-merge-and-export-flow.md"}
 {"source_id": "go-cli-export-runner", "target_id": "schema-validation-engine", "relation": "uses_component", "section": "Components", "target_path": "specs/component/schema-validation-engine.md"}
 {"source_id": "go-cli-export-runner", "target_id": "export-settings-model", "relation": "uses_component", "section": "Components", "target_path": "specs/data-model/export-settings-model.md"}
-{"source_id": "go-cli-export-runner", "target_id": "template-export-definition-model", "relation": "uses_component", "section": "Components", "target_path": "specs/data-model/template-export-definition-model.md"}
-{"source_id": "go-cli-export-runner", "target_id": "pongo2-template-export-adapter", "relation": "uses_component", "section": "Components", "target_path": "specs/component/pongo2-template-export-adapter.md"}
 {"source_id": "go-cli-export-runner", "target_id": "go-embedded-web-server-host", "relation": "uses_component", "section": "Components", "target_path": "specs/server-component/go-embedded-web-server-host.md"}
 {"source_id": "go-cli-export-runner", "target_id": "go-embedded-web-server-host", "relation": "links_to", "section": "Flags", "target_path": "specs/server-component/go-embedded-web-server-host.md"}
 {"source_id": "go-cli-export-runner", "target_id": "export-execution-flow", "relation": "links_to", "section": "Flow", "target_path": "specs/data-flow/export-execution-flow.md"}
@@ -16,10 +14,15 @@
 {"source_id": "go-cli-export-runner", "target_id": "generation-merge-and-export-flow", "relation": "relates_to", "section": "Related Requirements", "target_path": "specs/data-flow/generation-merge-and-export-flow.md"}
 {"source_id": "go-cli-export-runner", "target_id": "schema-validation-engine", "relation": "relates_to", "section": "Related Requirements", "target_path": "specs/component/schema-validation-engine.md"}
 {"source_id": "go-cli-export-runner", "target_id": "export-settings-model", "relation": "relates_to", "section": "Related Requirements", "target_path": "specs/data-model/export-settings-model.md"}
-{"source_id": "go-cli-export-runner", "target_id": "template-export-definition-model", "relation": "relates_to", "section": "Related Requirements", "target_path": "specs/data-model/template-export-definition-model.md"}
-{"source_id": "go-cli-export-runner", "target_id": "pongo2-template-export-adapter", "relation": "relates_to", "section": "Related Requirements", "target_path": "specs/component/pongo2-template-export-adapter.md"}
+{"source_id": "go-cli-export-runner", "target_id": "go-cli-generate-runner", "relation": "relates_to", "section": "Related Requirements", "target_path": "specs/batch-component/go-cli-generate-runner.md"}
 {"source_id": "go-cli-export-runner", "target_id": "go-embedded-web-server-host", "relation": "relates_to", "section": "Related Requirements", "target_path": "specs/server-component/go-embedded-web-server-host.md"}
 {"source_id": "go-cli-export-runner", "target_id": "wails-desktop-host", "relation": "relates_to", "section": "Related Requirements", "target_path": "specs/server-component/wails-desktop-host.md"}
+{"source_id": "go-cli-generate-runner", "target_id": "go-embedded-web-server-host", "relation": "links_to", "section": "Flags", "target_path": "specs/server-component/go-embedded-web-server-host.md"}
+{"source_id": "go-cli-generate-runner", "target_id": "template-export-definition-model", "relation": "relates_to", "section": "Related Requirements", "target_path": "specs/data-model/template-export-definition-model.md"}
+{"source_id": "go-cli-generate-runner", "target_id": "pongo2-template-export-adapter", "relation": "relates_to", "section": "Related Requirements", "target_path": "specs/component/pongo2-template-export-adapter.md"}
+{"source_id": "go-cli-generate-runner", "target_id": "generation-merge-and-export-flow", "relation": "relates_to", "section": "Related Requirements", "target_path": "specs/data-flow/generation-merge-and-export-flow.md"}
+{"source_id": "go-cli-generate-runner", "target_id": "schema-validation-engine", "relation": "relates_to", "section": "Related Requirements", "target_path": "specs/component/schema-validation-engine.md"}
+{"source_id": "go-cli-generate-runner", "target_id": "go-embedded-web-server-host", "relation": "relates_to", "section": "Related Requirements", "target_path": "specs/server-component/go-embedded-web-server-host.md"}
 {"source_id": "agent-tool-contract", "target_id": "ai-assistant-service", "relation": "depends_on", "section": "Dependencies", "target_path": "specs/component/ai-assistant-service.md"}
 {"source_id": "agent-tool-contract", "target_id": "ai-provider-configuration-model", "relation": "depends_on", "section": "Dependencies", "target_path": "specs/data-model/ai-provider-configuration-model.md"}
 {"source_id": "agent-tool-contract", "target_id": "schema-validation-engine", "relation": "depends_on", "section": "Dependencies", "target_path": "specs/component/schema-validation-engine.md"}
@@ -47,19 +50,18 @@
 {"source_id": "ai-assistant-service", "target_id": "shared-web-editing-frontend", "relation": "relates_to", "section": "Related Requirements", "target_path": "specs/component/shared-web-editing-frontend.md"}
 {"source_id": "ai-assistant-service", "target_id": "html-editor-plugin-runtime", "relation": "relates_to", "section": "Related Requirements", "target_path": "specs/component/html-editor-plugin-runtime.md"}
 {"source_id": "ai-assistant-service", "target_id": "product-overview", "relation": "relates_to", "section": "Related Requirements", "target_path": "specs/generic/product-overview.md"}
+{"source_id": "export-backend-adapters", "target_id": "go-cli-generate-runner", "relation": "links_to", "section": "Summary", "target_path": "specs/batch-component/go-cli-generate-runner.md"}
 {"source_id": "export-backend-adapters", "target_id": "generation-merge-and-export-flow", "relation": "links_to", "section": "Scope", "target_path": "specs/data-flow/generation-merge-and-export-flow.md"}
 {"source_id": "export-backend-adapters", "target_id": "export-execution-flow", "relation": "links_to", "section": "Scope", "target_path": "specs/data-flow/export-execution-flow.md"}
 {"source_id": "export-backend-adapters", "target_id": "go-cli-export-runner", "relation": "links_to", "section": "Scope", "target_path": "specs/batch-component/go-cli-export-runner.md"}
 {"source_id": "export-backend-adapters", "target_id": "schema-validation-engine", "relation": "links_to", "section": "Scope", "target_path": "specs/component/schema-validation-engine.md"}
-{"source_id": "export-backend-adapters", "target_id": "template-export-definition-model", "relation": "links_to", "section": "Rules / Constraints", "target_path": "specs/data-model/template-export-definition-model.md"}
 {"source_id": "export-backend-adapters", "target_id": "generic-master-data-model", "relation": "depends_on", "section": "Dependencies", "target_path": "specs/data-model/generic-master-data-model.md"}
 {"source_id": "export-backend-adapters", "target_id": "table-schema-model", "relation": "depends_on", "section": "Dependencies", "target_path": "specs/data-model/table-schema-model.md"}
 {"source_id": "export-backend-adapters", "target_id": "schema-validation-engine", "relation": "depends_on", "section": "Dependencies", "target_path": "specs/component/schema-validation-engine.md"}
 {"source_id": "export-backend-adapters", "target_id": "export-settings-model", "relation": "depends_on", "section": "Dependencies", "target_path": "specs/data-model/export-settings-model.md"}
-{"source_id": "export-backend-adapters", "target_id": "template-export-definition-model", "relation": "depends_on", "section": "Dependencies", "target_path": "specs/data-model/template-export-definition-model.md"}
-{"source_id": "export-backend-adapters", "target_id": "pongo2-template-export-adapter", "relation": "depends_on", "section": "Dependencies", "target_path": "specs/component/pongo2-template-export-adapter.md"}
 {"source_id": "export-backend-adapters", "target_id": "export-execution-flow", "relation": "depends_on", "section": "Dependencies", "target_path": "specs/data-flow/export-execution-flow.md"}
 {"source_id": "export-backend-adapters", "target_id": "go-cli-export-runner", "relation": "depends_on", "section": "Dependencies", "target_path": "specs/batch-component/go-cli-export-runner.md"}
+{"source_id": "export-backend-adapters", "target_id": "go-cli-generate-runner", "relation": "depends_on", "section": "Dependencies", "target_path": "specs/batch-component/go-cli-generate-runner.md"}
 {"source_id": "export-backend-adapters", "target_id": "product-overview", "relation": "relates_to", "section": "Related Documents", "target_path": "specs/generic/product-overview.md"}
 {"source_id": "html-editor-plugin-runtime", "target_id": "editor-plugin-model", "relation": "links_to", "section": "Responsibilities", "target_path": "specs/data-model/editor-plugin-model.md"}
 {"source_id": "html-editor-plugin-runtime", "target_id": "editor-plugin-model", "relation": "depends_on", "section": "Dependencies", "target_path": "specs/data-model/editor-plugin-model.md"}
@@ -71,12 +73,10 @@
 {"source_id": "html-editor-plugin-runtime", "target_id": "table-schema-model", "relation": "relates_to", "section": "Related Requirements", "target_path": "specs/data-model/table-schema-model.md"}
 {"source_id": "html-editor-plugin-runtime", "target_id": "generation-merge-and-export-flow", "relation": "relates_to", "section": "Related Requirements", "target_path": "specs/data-flow/generation-merge-and-export-flow.md"}
 {"source_id": "pongo2-template-export-adapter", "target_id": "generation-merge-and-export-flow", "relation": "links_to", "section": "Inputs", "target_path": "specs/data-flow/generation-merge-and-export-flow.md"}
-{"source_id": "pongo2-template-export-adapter", "target_id": "export-settings-model", "relation": "links_to", "section": "Inputs", "target_path": "specs/data-model/export-settings-model.md"}
+{"source_id": "pongo2-template-export-adapter", "target_id": "template-export-definition-model", "relation": "links_to", "section": "Inputs", "target_path": "specs/data-model/template-export-definition-model.md"}
 {"source_id": "pongo2-template-export-adapter", "target_id": "template-export-definition-model", "relation": "links_to", "section": "Rules / Constraints", "target_path": "specs/data-model/template-export-definition-model.md"}
 {"source_id": "pongo2-template-export-adapter", "target_id": "template-export-definition-model", "relation": "depends_on", "section": "Dependencies", "target_path": "specs/data-model/template-export-definition-model.md"}
-{"source_id": "pongo2-template-export-adapter", "target_id": "export-backend-adapters", "relation": "depends_on", "section": "Dependencies", "target_path": "specs/component/export-backend-adapters.md"}
-{"source_id": "pongo2-template-export-adapter", "target_id": "export-execution-flow", "relation": "depends_on", "section": "Dependencies", "target_path": "specs/data-flow/export-execution-flow.md"}
-{"source_id": "pongo2-template-export-adapter", "target_id": "go-cli-export-runner", "relation": "depends_on", "section": "Dependencies", "target_path": "specs/batch-component/go-cli-export-runner.md"}
+{"source_id": "pongo2-template-export-adapter", "target_id": "go-cli-generate-runner", "relation": "depends_on", "section": "Dependencies", "target_path": "specs/batch-component/go-cli-generate-runner.md"}
 {"source_id": "schema-validation-engine", "target_id": "generic-master-data-model", "relation": "depends_on", "section": "Dependencies", "target_path": "specs/data-model/generic-master-data-model.md"}
 {"source_id": "schema-validation-engine", "target_id": "canonical-yaml-file-layout", "relation": "depends_on", "section": "Dependencies", "target_path": "specs/data-model/canonical-yaml-file-layout.md"}
 {"source_id": "schema-validation-engine", "target_id": "table-schema-model", "relation": "depends_on", "section": "Dependencies", "target_path": "specs/data-model/table-schema-model.md"}
@@ -113,25 +113,21 @@
 {"source_id": "export-execution-flow", "target_id": "table-schema-model", "relation": "uses_component", "section": "Components", "target_path": "specs/data-model/table-schema-model.md"}
 {"source_id": "export-execution-flow", "target_id": "generation-model", "relation": "uses_component", "section": "Components", "target_path": "specs/data-model/generation-model.md"}
 {"source_id": "export-execution-flow", "target_id": "export-settings-model", "relation": "uses_component", "section": "Components", "target_path": "specs/data-model/export-settings-model.md"}
-{"source_id": "export-execution-flow", "target_id": "template-export-definition-model", "relation": "uses_component", "section": "Components", "target_path": "specs/data-model/template-export-definition-model.md"}
-{"source_id": "export-execution-flow", "target_id": "pongo2-template-export-adapter", "relation": "uses_component", "section": "Components", "target_path": "specs/component/pongo2-template-export-adapter.md"}
 {"source_id": "export-execution-flow", "target_id": "go-cli-export-runner", "relation": "uses_component", "section": "Components", "target_path": "specs/batch-component/go-cli-export-runner.md"}
 {"source_id": "export-execution-flow", "target_id": "export-settings-model", "relation": "invokes", "section": "APIs", "target_path": "specs/data-model/export-settings-model.md"}
 {"source_id": "export-execution-flow", "target_id": "go-cli-export-runner", "relation": "links_to", "section": "Export Formats", "target_path": "specs/batch-component/go-cli-export-runner.md"}
 {"source_id": "export-execution-flow", "target_id": "schema-validation-engine", "relation": "links_to", "section": "Pre-Export Validation", "target_path": "specs/component/schema-validation-engine.md"}
 {"source_id": "export-execution-flow", "target_id": "generation-merge-and-export-flow", "relation": "links_to", "section": "Flow", "target_path": "specs/data-flow/generation-merge-and-export-flow.md"}
-{"source_id": "export-execution-flow", "target_id": "export-settings-model", "relation": "links_to", "section": "Flow", "target_path": "specs/data-model/export-settings-model.md"}
 {"source_id": "export-execution-flow", "target_id": "product-overview", "relation": "relates_to", "section": "Related Requirements", "target_path": "specs/generic/product-overview.md"}
 {"source_id": "export-execution-flow", "target_id": "generic-master-data-model", "relation": "relates_to", "section": "Related Requirements", "target_path": "specs/data-model/generic-master-data-model.md"}
 {"source_id": "export-execution-flow", "target_id": "table-schema-model", "relation": "relates_to", "section": "Related Requirements", "target_path": "specs/data-model/table-schema-model.md"}
 {"source_id": "export-execution-flow", "target_id": "generation-model", "relation": "relates_to", "section": "Related Requirements", "target_path": "specs/data-model/generation-model.md"}
 {"source_id": "export-execution-flow", "target_id": "export-settings-model", "relation": "relates_to", "section": "Related Requirements", "target_path": "specs/data-model/export-settings-model.md"}
-{"source_id": "export-execution-flow", "target_id": "template-export-definition-model", "relation": "relates_to", "section": "Related Requirements", "target_path": "specs/data-model/template-export-definition-model.md"}
 {"source_id": "export-execution-flow", "target_id": "generation-merge-and-export-flow", "relation": "relates_to", "section": "Related Requirements", "target_path": "specs/data-flow/generation-merge-and-export-flow.md"}
 {"source_id": "export-execution-flow", "target_id": "schema-validation-engine", "relation": "relates_to", "section": "Related Requirements", "target_path": "specs/component/schema-validation-engine.md"}
 {"source_id": "export-execution-flow", "target_id": "export-backend-adapters", "relation": "relates_to", "section": "Related Requirements", "target_path": "specs/component/export-backend-adapters.md"}
-{"source_id": "export-execution-flow", "target_id": "pongo2-template-export-adapter", "relation": "relates_to", "section": "Related Requirements", "target_path": "specs/component/pongo2-template-export-adapter.md"}
 {"source_id": "export-execution-flow", "target_id": "go-cli-export-runner", "relation": "relates_to", "section": "Related Requirements", "target_path": "specs/batch-component/go-cli-export-runner.md"}
+{"source_id": "export-execution-flow", "target_id": "go-cli-generate-runner", "relation": "relates_to", "section": "Related Requirements", "target_path": "specs/batch-component/go-cli-generate-runner.md"}
 {"source_id": "generation-analysis-flow", "target_id": "generation-editing-screen", "relation": "uses_component", "section": "Components", "target_path": "specs/ui-screen/generation-editing-screen.md"}
 {"source_id": "generation-analysis-flow", "target_id": "generation-model", "relation": "uses_component", "section": "Components", "target_path": "specs/data-model/generation-model.md"}
 {"source_id": "generation-analysis-flow", "target_id": "canonical-yaml-file-layout", "relation": "uses_component", "section": "Components", "target_path": "specs/data-model/canonical-yaml-file-layout.md"}
@@ -215,12 +211,12 @@
 {"source_id": "editor-plugin-model", "target_id": "table-editing-workspace", "relation": "relates_to", "section": "Related Requirements", "target_path": "specs/ui-screen/table-editing-workspace.md"}
 {"source_id": "editor-plugin-model", "target_id": "web-service-host", "relation": "relates_to", "section": "Related Requirements", "target_path": "specs/server-component/web-service-host.md"}
 {"source_id": "export-settings-model", "target_id": "export-backend-adapters", "relation": "links_to", "section": "Resolution Order", "target_path": "specs/component/export-backend-adapters.md"}
-{"source_id": "export-settings-model", "target_id": "template-export-definition-model", "relation": "links_to", "section": "Rules / Constraints", "target_path": "specs/data-model/template-export-definition-model.md"}
 {"source_id": "export-settings-model", "target_id": "canonical-yaml-file-layout", "relation": "depends_on", "section": "Dependencies", "target_path": "specs/data-model/canonical-yaml-file-layout.md"}
 {"source_id": "export-settings-model", "target_id": "export-backend-adapters", "relation": "depends_on", "section": "Dependencies", "target_path": "specs/component/export-backend-adapters.md"}
 {"source_id": "export-settings-model", "target_id": "template-export-definition-model", "relation": "depends_on", "section": "Dependencies", "target_path": "specs/data-model/template-export-definition-model.md"}
 {"source_id": "export-settings-model", "target_id": "export-execution-flow", "relation": "depends_on", "section": "Dependencies", "target_path": "specs/data-flow/export-execution-flow.md"}
 {"source_id": "export-settings-model", "target_id": "go-cli-export-runner", "relation": "depends_on", "section": "Dependencies", "target_path": "specs/batch-component/go-cli-export-runner.md"}
+{"source_id": "export-settings-model", "target_id": "go-cli-generate-runner", "relation": "depends_on", "section": "Dependencies", "target_path": "specs/batch-component/go-cli-generate-runner.md"}
 {"source_id": "generation-model", "target_id": "canonical-yaml-file-layout", "relation": "reads", "section": "Reads", "target_path": "specs/data-model/canonical-yaml-file-layout.md"}
 {"source_id": "generation-model", "target_id": "generation-merge-and-export-flow", "relation": "reads", "section": "Reads", "target_path": "specs/data-flow/generation-merge-and-export-flow.md"}
 {"source_id": "generation-model", "target_id": "generation-editing-screen", "relation": "relates_to", "section": "Related Requirements", "target_path": "specs/ui-screen/generation-editing-screen.md"}
@@ -248,7 +244,7 @@
 {"source_id": "template-export-definition-model", "target_id": "export-execution-flow", "relation": "depends_on", "section": "Dependencies", "target_path": "specs/data-flow/export-execution-flow.md"}
 {"source_id": "template-export-definition-model", "target_id": "pongo2-template-export-adapter", "relation": "depends_on", "section": "Dependencies", "target_path": "specs/component/pongo2-template-export-adapter.md"}
 {"source_id": "template-export-definition-model", "target_id": "template-export-definition-screen", "relation": "depends_on", "section": "Dependencies", "target_path": "specs/ui-screen/template-export-definition-screen.md"}
-{"source_id": "template-export-definition-model", "target_id": "go-cli-export-runner", "relation": "depends_on", "section": "Dependencies", "target_path": "specs/batch-component/go-cli-export-runner.md"}
+{"source_id": "template-export-definition-model", "target_id": "go-cli-generate-runner", "relation": "depends_on", "section": "Dependencies", "target_path": "specs/batch-component/go-cli-generate-runner.md"}
 {"source_id": "product-overview", "target_id": "table-editing-workspace", "relation": "links_to", "section": "Initial Runnable Slice", "target_path": "specs/ui-screen/table-editing-workspace.md"}
 {"source_id": "product-overview", "target_id": "generic-master-data-model", "relation": "relates_to", "section": "Related Documents", "target_path": "specs/data-model/generic-master-data-model.md"}
 {"source_id": "product-overview", "target_id": "table-schema-model", "relation": "relates_to", "section": "Related Documents", "target_path": "specs/data-model/table-schema-model.md"}
@@ -398,6 +394,6 @@
 {"source_id": "table-editing-workspace", "target_id": "generation-merge-and-export-flow", "relation": "relates_to", "section": "Related Requirements", "target_path": "specs/data-flow/generation-merge-and-export-flow.md"}
 {"source_id": "template-export-definition-screen", "target_id": "template-export-definition-model", "relation": "depends_on", "section": "Dependencies", "target_path": "specs/data-model/template-export-definition-model.md"}
 {"source_id": "template-export-definition-screen", "target_id": "pongo2-template-export-adapter", "relation": "depends_on", "section": "Dependencies", "target_path": "specs/component/pongo2-template-export-adapter.md"}
-{"source_id": "template-export-definition-screen", "target_id": "export-execution-flow", "relation": "depends_on", "section": "Dependencies", "target_path": "specs/data-flow/export-execution-flow.md"}
+{"source_id": "template-export-definition-screen", "target_id": "go-cli-generate-runner", "relation": "depends_on", "section": "Dependencies", "target_path": "specs/batch-component/go-cli-generate-runner.md"}
 {"source_id": "template-export-definition-screen", "target_id": "single-page-application-shell", "relation": "depends_on", "section": "Dependencies", "target_path": "specs/ui-flow/single-page-application-shell.md"}
 {"source_id": "template-export-definition-screen", "target_id": "table-schema-model", "relation": "depends_on", "section": "Dependencies", "target_path": "specs/data-model/table-schema-model.md"}

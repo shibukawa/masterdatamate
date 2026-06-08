@@ -108,6 +108,85 @@ func TestSaveExportSettingsNormalizesHTTPFormat(t *testing.T) {
 	}
 }
 
+func TestGenerateRendersSelectedDefinitions(t *testing.T) {
+	root := testExportWorkspace(t, "valid")
+	writeExportTestFile(t, filepath.Join(root, "masterdata", "generate_definitions.yaml"), `version: 1
+output_root: generated
+definitions:
+  - id: user_constants
+    name: User constants
+    enabled: true
+    scope: table
+    table: user
+    template: |
+      package generated
+
+      {% for row in records %}
+      const {{ row.user_id|go_ident }}Org = {{ row.org_id|go_string }}
+      {% endfor %}
+    output_path: users/constants.go
+    formatter: gofmt
+  - id: user_record
+    name: User record
+    enabled: true
+    scope: record
+    table: user
+    template: "{{ record.user_id }} -> {{ record.org_id }}\n"
+    output_path: users/{{ record.user_id }}.txt
+`)
+	s, err := NewData(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	result, files, _, err := s.buildGenerateResult([]string{"0000_initial"}, []string{"user_constants", "user_record"}, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result["generatable"] != true {
+		t.Fatalf("expected generatable diagnostics=%v", result["diagnostics"])
+	}
+	byName := map[string]string{}
+	for _, file := range files {
+		byName[file.Name] = string(file.Data)
+	}
+	if got := byName["users/constants.go"]; !strings.Contains(got, `const User1Org = "org-1"`) {
+		t.Fatalf("expected generated Go constant, got:\n%s", got)
+	}
+	if got := byName["users/user-1.txt"]; got != "user-1 -> org-1\n" {
+		t.Fatalf("expected record file, got %q", got)
+	}
+}
+
+func TestCLIGenerateWritesConfiguredOutputRoot(t *testing.T) {
+	root := testExportWorkspace(t, "valid")
+	writeExportTestFile(t, filepath.Join(root, "masterdata", "generate_templates", "users.txt.pongo2"), `{% for row in records %}{{ row.user_id }}={{ row.org_id }}
+{% endfor %}`)
+	writeExportTestFile(t, filepath.Join(root, "masterdata", "generate_definitions.yaml"), `version: 1
+output_root: generated
+definitions:
+  - id: users_txt
+    name: Users text
+    enabled: true
+    scope: table
+    table: user
+    template_file: users.txt.pongo2
+    output_path: users.txt
+`)
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	code := RunGenerateCommand([]string{"--workspace", root, "--json"}, &stdout, &stderr)
+	if code != 0 {
+		t.Fatalf("expected exit 0, got %d stderr=%s stdout=%s", code, stderr.String(), stdout.String())
+	}
+	data, err := os.ReadFile(filepath.Join(root, "generated", "users.txt"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := string(data); got != "user-1=org-1\n" {
+		t.Fatalf("expected template output, got %q", got)
+	}
+}
+
 func testExportWorkspace(t *testing.T, mode string) string {
 	t.Helper()
 	root := t.TempDir()
