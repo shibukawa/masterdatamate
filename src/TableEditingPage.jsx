@@ -16,14 +16,18 @@ export function TableEditingPage({
   dirty,
   saving,
   selection,
+  pluginActions = [],
   onSetTableViewMode,
   onAddRow,
   onDeleteSelectedRow,
   onCommit,
   onSwitchMode,
+  onOpenPlugin,
+  onBinaryUpload,
   onDirtyChange,
   onSelectionChange
 }) {
+  const hasSelectedRow = selection?.activeRowIndex != null || selection?.activeRowKey != null;
   return (
     <section className={styles.workspace}>
       <header className={styles.toolbar}>
@@ -42,6 +46,16 @@ export function TableEditingPage({
           </div>
           <button type="button" onClick={onAddRow} disabled={!schema}>Add</button>
           <button type="button" onClick={onDeleteSelectedRow} disabled={!schema || selection?.activeRowIndex == null}>Delete</button>
+          {pluginActions.map(({ plugin, entryPoint }) => (
+            <button
+              type="button"
+              key={`${plugin.plugin_id}:${entryPoint.entry_id || entryPoint.id}`}
+              onClick={() => onOpenPlugin(plugin, entryPoint)}
+              disabled={!schema || (entryPoint.placement === "record_action" && !hasSelectedRow)}
+            >
+              {entryPoint.label || plugin.display_name}
+            </button>
+          ))}
           <button type="button" className={styles.primary} onClick={() => onCommit(false)} disabled={!dirty || saving}>{saving ? "Saving" : "Commit"}</button>
         </div>
       </header>
@@ -56,6 +70,7 @@ export function TableEditingPage({
             mode={mode}
             activeGenerationId={editGenerationId}
             referenceCandidates={referenceCandidates}
+            onBinaryUpload={onBinaryUpload}
             onDirtyChange={onDirtyChange}
             onSelectionChange={onSelectionChange}
           />

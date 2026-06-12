@@ -1,0 +1,39 @@
+system_name: maze_map
+business_name: Maze Maps
+primary_key:
+  - map_id
+export: true
+dependent_tables:
+  - table: maze_cell
+    foreign_key:
+      map_id: map_id
+comment: Map-level metadata for a fixed 10x10 maze.
+fields:
+  - system_name: map_id
+    business_name: Map ID
+    type: string
+    required: true
+    export: true
+  - system_name: name
+    business_name: Name
+    type: string
+    required: true
+    export: true
+  - system_name: width
+    business_name: Width
+    type: integer
+    required: true
+    export: true
+    default_value: 10
+  - system_name: height
+    business_name: Height
+    type: integer
+    required: true
+    export: true
+    default_value: 10
+  - system_name: comment
+    business_name: Comment
+    type: string
+    required: false
+    export: false
+

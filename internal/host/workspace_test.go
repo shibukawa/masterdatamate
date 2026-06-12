@@ -38,6 +38,41 @@ func TestResolveWorkspaceFromInsideMasterdata(t *testing.T) {
 	}
 }
 
+func TestResolveWorkspacePrefersNestedWorkspaceWithMasterdata(t *testing.T) {
+	root := t.TempDir()
+	writeFile(t, filepath.Join(root, "go.mod"), "module example.test/project\n")
+	mkdirAll(t, filepath.Join(root, "masterdata", "schema"))
+	mkdirAll(t, filepath.Join(root, "masterdata", "generations", "0000_initial"))
+	nested := filepath.Join(root, "examples", "maze")
+	mkdirAll(t, filepath.Join(nested, "masterdata", "schema"))
+	mkdirAll(t, filepath.Join(nested, "masterdata", "generations", "0000_initial"))
+
+	got, err := ResolveWorkspace(nested)
+	if err != nil {
+		t.Fatalf("ResolveWorkspace() error = %v", err)
+	}
+	if got != nested {
+		t.Fatalf("ResolveWorkspace() = %q, want %q", got, nested)
+	}
+}
+
+func TestResolveWorkspaceDoesNotStopAtMarkerWithoutMasterdata(t *testing.T) {
+	root := t.TempDir()
+	mkdirAll(t, filepath.Join(root, "masterdata", "schema"))
+	mkdirAll(t, filepath.Join(root, "masterdata", "generations", "0000_initial"))
+	nested := filepath.Join(root, "tools", "editor")
+	mkdirAll(t, nested)
+	writeFile(t, filepath.Join(nested, "package.json"), "{}\n")
+
+	got, err := ResolveWorkspace(nested)
+	if err != nil {
+		t.Fatalf("ResolveWorkspace() error = %v", err)
+	}
+	if got != root {
+		t.Fatalf("ResolveWorkspace() = %q, want %q", got, root)
+	}
+}
+
 func TestResolveWorkspaceIgnoresBinaryPathOnlyRoot(t *testing.T) {
 	root := t.TempDir()
 	writeFile(t, filepath.Join(root, "go.mod"), "module example.test/project\n")
@@ -57,7 +92,7 @@ func TestResolveWorkspaceIgnoresBinaryPathOnlyRoot(t *testing.T) {
 	}
 }
 
-func TestResolveWorkspaceRequiresMasterdataAtMarkedRoot(t *testing.T) {
+func TestResolveWorkspaceRequiresMasterdataInCurrentOrAncestor(t *testing.T) {
 	root := t.TempDir()
 	writeFile(t, filepath.Join(root, "go.mod"), "module example.test/project\n")
 

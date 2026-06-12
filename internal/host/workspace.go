@@ -6,8 +6,6 @@ import (
 	"path/filepath"
 )
 
-var workspaceRootMarkers = []string{"go.mod", ".git", "package.json"}
-
 func NewWorkspacePath(root string) (string, error) {
 	if root == "" {
 		return "", fmt.Errorf("workspace root is empty")
@@ -16,8 +14,9 @@ func NewWorkspacePath(root string) (string, error) {
 }
 
 // ResolveWorkspace discovers the workspace root for implicit launches.
-// Discovery starts at start and walks upward until a project root marker and
-// masterdata directory are found in the same directory.
+// Discovery starts at start and selects the nearest directory that contains a
+// masterdata directory. Project root markers are diagnostic hints only; they
+// must not cause a parent repository to win over a nested sample workspace.
 func ResolveWorkspace(start string) (string, error) {
 	if start == "" {
 		start = "."
@@ -35,7 +34,7 @@ func ResolveWorkspace(start string) (string, error) {
 	}
 
 	for {
-		if hasWorkspaceRootMarker(current) && hasDirectory(filepath.Join(current, "masterdata")) {
+		if hasDirectory(filepath.Join(current, "masterdata")) {
 			return current, nil
 		}
 		parent := filepath.Dir(current)
@@ -45,15 +44,6 @@ func ResolveWorkspace(start string) (string, error) {
 		current = parent
 	}
 	return "", fmt.Errorf("could not find workspace root containing masterdata from %s", start)
-}
-
-func hasWorkspaceRootMarker(dir string) bool {
-	for _, marker := range workspaceRootMarkers {
-		if _, err := os.Stat(filepath.Join(dir, marker)); err == nil {
-			return true
-		}
-	}
-	return false
 }
 
 func hasDirectory(path string) bool {

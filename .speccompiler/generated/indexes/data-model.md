@@ -1,6 +1,7 @@
 # data-model index
 
 - [AI provider configuration model](../../specs/data-model/ai-provider-configuration-model.md) `ai-provider-configuration-model`
+- [Binary asset model](../../specs/data-model/binary-asset-model.md) `binary-asset-model`
 - [Canonical YAML file layout](../../specs/data-model/canonical-yaml-file-layout.md) `canonical-yaml-file-layout`
 - [Editor plugin model](../../specs/data-model/editor-plugin-model.md) `editor-plugin-model`
 - [Export settings model](../../specs/data-model/export-settings-model.md) `export-settings-model`

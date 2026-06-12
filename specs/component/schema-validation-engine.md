@@ -25,6 +25,7 @@ The schema validation engine validates table schemas, YAML records, pending fron
   - Validate schema formula fields and evaluate formula results.
   - Validate schema field default values.
   - Validate schema export flags.
+  - Validate binary file metadata and required binary asset existence.
   - Validate external references by resolving stored primary key values to target table records.
   - Validate that external reference definitions do not create cycles.
   - Validate pending frontend edits before commit.
@@ -56,6 +57,11 @@ The schema validation engine validates table schemas, YAML records, pending fron
 - Formula result values must validate against the formula field declared type.
 - Schema field `default_value` values must validate against declared field type, constants, requiredness, and external reference target.
 - Formula fields must not define stored `default_value`.
+- Binary file fields must not define non-empty `default_value` values.
+- Binary file metadata must match the declared `binary_file` schema shape.
+- Required binary file fields must have metadata and a corresponding stored file under `masterdata/binaries`.
+- Binary file metadata extension, MIME type, and size must satisfy schema constraints when those constraints are declared.
+- Binary file validation must derive paths from [Binary asset model](../data-model/binary-asset-model.md); it must not trust caller-supplied paths from YAML or plugin payloads.
 - If a non-formula field omits `default_value`, type-based defaults may be materialized when table data is loaded into the editable row model, but validation should preserve the distinction between omitted source YAML and explicitly stored data when diagnostics need to explain the source.
 - Default-value application during table load may be written later if the user saves the loaded editable row.
 - Explicitly stored values that fail after a field type change are validation diagnostics.
@@ -93,6 +99,7 @@ The schema validation engine validates table schemas, YAML records, pending fron
 - [Generic master data model](../data-model/generic-master-data-model.md)
 - [Canonical YAML file layout](../data-model/canonical-yaml-file-layout.md)
 - [Table schema model](../data-model/table-schema-model.md)
+- [Binary asset model](../data-model/binary-asset-model.md)
 - [Generation merge and export flow](../data-flow/generation-merge-and-export-flow.md)
 
 ## Related Documents

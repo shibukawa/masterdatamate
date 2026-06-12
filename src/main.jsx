@@ -3,9 +3,10 @@ import { createRoot } from "react-dom/client";
 import "@extable/core/style.css";
 import "./global.css";
 import styles from "./App.module.css";
-import { api } from "./api.js";
-import { displayRows, normalizeRows } from "./ExtableEditor.jsx";
+import { api, uploadBinaryAsset as uploadBinaryAssetFile } from "./api.js";
+import { displayRows, normalizeRows, storedValue } from "./ExtableEditor.jsx";
 import { GenerationEditingPage } from "./GenerationEditingPage.jsx";
+import { PluginEditingPage } from "./PluginEditingPage.jsx";
 import { SchemaEditingPage } from "./SchemaEditingPage.jsx";
 import { TableEditingPage } from "./TableEditingPage.jsx";
 import { TemplateExportDefinitionPage } from "./TemplateExportDefinitionPage.jsx";
@@ -220,12 +221,15 @@ function App() {
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const [exportDialogGenerationIds, setExportDialogGenerationIds] = useState([]);
   const [exportDestination, setExportDestination] = useState("browser_download");
+  const [editorPlugins, setEditorPlugins] = useState([]);
+  const [pluginSession, setPluginSession] = useState(null);
 
   useEffect(() => {
     api("/api/tables").then(({ payload }) => {
       setTables(payload.tables);
       setSelectedTable(payload.tables[0]?.table_id ?? "");
     }).catch((error) => setStatus(error.message));
+    loadEditorPlugins().catch((error) => setStatus(error.message));
   }, []);
 
   useEffect(() => {
@@ -355,6 +359,7 @@ function App() {
   function selectTable(tableId) {
     if (tableId === selectedTable) return;
     if (!confirmTableSwitch()) return;
+    setPluginSession(null);
     setSelectedTable(tableId);
   }
 
@@ -394,6 +399,11 @@ function App() {
     const { payload } = await api("/api/tables");
     setTables(payload.tables);
     setSelectedTable((current) => payload.tables.some((table) => table.table_id === current) ? current : (payload.tables[0]?.table_id ?? ""));
+  }
+
+  async function loadEditorPlugins() {
+    const { payload } = await api("/api/editor-plugins");
+    setEditorPlugins(payload.plugins ?? []);
   }
 
   async function loadSchemaList() {
@@ -1071,6 +1081,77 @@ function App() {
     setDirty(true);
   }
 
+  function cleanRowValues(row) {
+    const next = {};
+    for (const [key, value] of Object.entries(row ?? {})) next[key] = storedValue(value);
+    return next;
+  }
+
+  function rowPrimaryKey(row, targetSchema = schema) {
+    const clean = cleanRowValues(row);
+    if (!targetSchema?.primary_key?.length) return null;
+    if (targetSchema.primary_key.length === 1) return clean[targetSchema.primary_key[0]];
+    return Object.fromEntries(targetSchema.primary_key.map((field) => [field, clean[field]]));
+  }
+
+  function pluginEntryPoints(placement, tableId = selectedTable) {
+    return editorPlugins.flatMap((plugin) => (plugin.entry_points ?? []).filter((entryPoint) => {
+      if (entryPoint.placement !== placement) return false;
+      return !entryPoint.table || entryPoint.table === tableId;
+    }).map((entryPoint) => ({ plugin, entryPoint })));
+  }
+
+  function pluginEntryPointId(entryPoint) {
+    return entryPoint.entry_id || entryPoint.id;
+  }
+
+  function openPlugin(plugin, entryPoint, entryOverride = null) {
+    if (dirty) {
+      setStatus("Save or revert table edits before opening a plugin.");
+      return;
+    }
+    const openMode = entryPoint.open_mode || plugin.open_mode || "record";
+    let entry = entryOverride;
+    if (!entry && openMode === "record") {
+      const target = selection?.activeRowKey ?? selection?.activeRowIndex;
+      const row = editorRef.current?.getRow(target);
+      if (!row) {
+        setStatus("Select a record before opening this plugin.");
+        return;
+      }
+      if (row.isReadOnly) {
+        setStatus("Readonly generation rows cannot be edited by plugin.");
+        return;
+      }
+      entry = { kind: "record", table: selectedTable, key: rowPrimaryKey(row), row: cleanRowValues(row) };
+    }
+    if (!entry) {
+      entry = { kind: openMode, table: entryPoint.table || selectedTable };
+    }
+    setPluginSession({ plugin, entryPoint: { ...entryPoint, id: pluginEntryPointId(entryPoint) }, entry });
+    setStatus(`Opening ${plugin.display_name}.`);
+  }
+
+  async function reloadCurrentTableAfterPluginSave() {
+    if (!selectedTable || !editGenerationId) return;
+    const { payload } = await api(`/api/tables/${selectedTable}/generation-view?activeGenerationId=${encodeURIComponent(editGenerationId)}&mode=${encodeURIComponent(tableViewMode)}`);
+    setSchema(payload.schema);
+    setRows(displayRows(payload.rows, payload.schema, referenceCandidates));
+    setDiagnostics(payload.diagnostics ?? []);
+    await editorRef.current?.clearPending?.();
+    setDirty(false);
+    setStatus(`Loaded ${payload.schema.business_name} in ${editGenerationId} (${tableViewMode}).`);
+  }
+
+  async function closePluginSession() {
+    setPluginSession(null);
+    try {
+      await reloadCurrentTableAfterPluginSave();
+    } catch (error) {
+      setStatus(error.message);
+    }
+  }
+
   function switchMode(nextMode) {
     if (schema && editorRef.current?.hasPendingChanges()) {
       setRows(normalizeRows(editorRef.current.getRows(), selectedTable));
@@ -1086,6 +1167,32 @@ function App() {
       return;
     }
     if (editorRef.current?.deleteRow(target)) setDirty(true);
+  }
+
+  async function uploadBinaryAsset({ schema: uploadSchema, field, recordKey, file }) {
+    if (!file) return null;
+    if (recordKey === undefined || recordKey === null || recordKey === "") {
+      setStatus("Save the record primary key before uploading a file.");
+      return null;
+    }
+    const table = uploadSchema?.table_id ?? selectedTable;
+    const key = typeof recordKey === "object" ? JSON.stringify(recordKey) : String(recordKey);
+    try {
+      setStatus(`Uploading ${file.name}...`);
+      const payload = await uploadBinaryAssetFile({
+        table,
+        key,
+        field: field.system_name,
+        generationId: editGenerationId,
+        file
+      });
+      setDirty(true);
+      setStatus(`Uploaded ${payload.metadata.original_name ?? file.name}.`);
+      return payload.metadata;
+    } catch (error) {
+      setStatus(error.message);
+      return null;
+    }
   }
 
   async function commit(force = false) {
@@ -1143,6 +1250,17 @@ function App() {
               </div>
             </div>
             <nav className={styles.nav} aria-label="Tables">
+              {pluginEntryPoints("sidebar").map(({ plugin, entryPoint }) => (
+                <button
+                  type="button"
+                  key={`${plugin.plugin_id}:${pluginEntryPointId(entryPoint)}`}
+                  className={pluginSession?.plugin.plugin_id === plugin.plugin_id ? styles.active : ""}
+                  onClick={() => openPlugin(plugin, entryPoint, { kind: entryPoint.open_mode || plugin.open_mode || "table", table: entryPoint.table || selectedTable })}
+                >
+                  <span>{entryPoint.label || plugin.display_name}</span>
+                  <small>{plugin.plugin_id}</small>
+                </button>
+              ))}
               {tables.map((table) => (
                 <button
                   type="button"
@@ -1315,6 +1433,15 @@ function App() {
           onSelectionChange={setExportDefinitionSelection}
           onUndoRedoChange={setExportDefinitionUndoRedo}
         />
+      ) : pluginSession ? (
+        <PluginEditingPage
+          session={pluginSession}
+          editGenerationId={editGenerationId}
+          tableViewMode={tableViewMode}
+          onClose={closePluginSession}
+          onSaved={reloadCurrentTableAfterPluginSave}
+          onStatus={setStatus}
+        />
       ) : (
         <TableEditingPage
         editorRef={editorRef}
@@ -1330,11 +1457,14 @@ function App() {
         dirty={dirty}
         saving={saving}
         selection={selection}
+        pluginActions={[...pluginEntryPoints("table_toolbar"), ...pluginEntryPoints("record_action")]}
         onSetTableViewMode={setTableViewMode}
         onAddRow={addRow}
         onDeleteSelectedRow={deleteSelectedRow}
         onCommit={commit}
         onSwitchMode={switchMode}
+        onOpenPlugin={openPlugin}
+        onBinaryUpload={uploadBinaryAsset}
         onDirtyChange={setDirty}
         onSelectionChange={setSelection}
       />

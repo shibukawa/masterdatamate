@@ -2,13 +2,23 @@
 
 ## Items
 
+- id: BLG-20260608-001
+  state: backlog
+  type: implementation
+  title: Implement record binary file upload support
+  docs: [binary-asset-model, canonical-yaml-file-layout, table-schema-model, table-editing-workspace, shared-web-editing-frontend, html-editor-plugin-runtime, web-service-host]
+  sources: [user:2026-06-08]
+  acceptance: Schema fields can declare `binary_file` metadata with allowed extensions, MIME types, and size constraints; uploaded files are stored under `masterdata/binaries/<table>/<primary-key>.<extension>` using safe deterministic filename encoding; table editing renders binary fields as upload controls that support click-to-select and drag-and-drop; upload, replace, preview/download, and delete flows call host APIs and never embed bytes in ordinary row commit payloads; upload responses return normalized metadata that can be saved in the row field; custom HTML editor plugins receive scoped host API functions for uploading, deleting, and previewing binary assets for records in their context; host APIs reject path traversal, unknown tables or records, unsupported extensions, oversized files, readonly records, and out-of-scope plugin requests; required binary fields validate that metadata and the stored file both exist.
+  blockers: []
+  updated: 2026-06-08
+
 - id: BLG-20260605-001
   state: backlog
   type: implementation
   title: Implement HTML editor plugin runtime for visual master data editors
   docs: [editor-plugin-model, html-editor-plugin-runtime, shared-web-editing-frontend, table-editing-workspace, web-service-host]
   sources: [user:2026-06-05]
-  acceptance: Project-local plugin declarations can register an HTML/JS editor with target tables, writable scopes, record filters, and one of three entry modes: one selected record plus related records, one selected grouping key representing multiple records such as the same external key, or immediate whole-table opening without an intermediate grid; record and group entry modes use extable selection surfaces before the plugin opens; table entry mode opens the custom editor directly; the host loads scoped schemas and records for declared tables only; plugin code receives an explicit entry context and host API, proposes canonical table change sets, participates in dirty-state, validation, save confirmation, revert, and reload flows, and cannot write YAML directly; map editor style parent/child editing supports one map row plus matching map item rows by key; group editors support all records sharing one declared field value; commits validate through the schema validation engine and either update all affected tables consistently or fail with clear recovery diagnostics.
+  acceptance: Project-local plugin declarations can register a custom editor delivered as built HTML/JavaScript/CSS assets under `masterdata/plugins`, with optional `masterdata/plugins`-scoped source_dir and build metadata for Vite/React/Vue or similar source projects, target tables, writable scopes, record filters, explicit entry_points for sidebar navigation, table-toolbar actions, record actions, and group actions, and one of three data scope modes: one selected record plus related records, one selected grouping key representing multiple records such as the same external key, or immediate whole-table opening without an intermediate grid; record and group entry modes use extable selection surfaces before the plugin opens; table entry mode opens the custom editor directly; schema UI metadata can hide plugin-only or implementation-detail tables from the ordinary table list while keeping them available to plugin scopes, validation, export, diagnostics, and repair tooling; the host loads scoped schemas and records for declared tables only; runtime asset routes serve the built output tree and do not serve source directories or dependency folders; plugin code receives an explicit entry context, entry point context, and host API, proposes canonical table change sets, participates in dirty-state, validation, save confirmation, revert, and reload flows, and cannot write YAML directly; map editor style parent/child editing supports one map row plus matching map item rows by key; group editors support all records sharing one declared field value; commits validate through the schema validation engine and either update all affected tables consistently or fail with clear recovery diagnostics.
   blockers: []
   updated: 2026-06-05
 
@@ -28,7 +38,7 @@
   title: Resolve default workspace by upward project-root discovery
   docs: [go-embedded-web-server-host, canonical-yaml-file-layout]
   sources: [user:2026-06-03]
-  acceptance: When `--workspace` is omitted, the Go web server starts discovery from the process current working directory, walks upward until it finds a project root marker such as `go.mod`, `.git`, or `package.json`, requires that root to contain `masterdata/`, and reads `masterdata/schema` plus `masterdata/generations` from that root; direct execution of `dist-native/masterdatamate` from the repository root or a descendant directory loads data correctly; implicit resolution never uses the native binary path, npm wrapper path, embedded asset path, or `dist-native/` directory as the workspace.
+  acceptance: When `--workspace` is omitted, the Go web server starts discovery from the process current working directory, selects the current directory immediately when it contains `masterdata/`, otherwise walks upward to the nearest ancestor containing `masterdata/`, and reads `masterdata/schema` plus `masterdata/generations` from that workspace; nested sample workspaces such as `examples/maze` win over an ancestor repository when launched from the sample directory; project root markers such as `go.mod`, `.git`, or `package.json` may help diagnostics but must not override the nearest `masterdata/` workspace; direct execution of `dist-native/masterdatamate` from the repository root or a descendant directory loads data correctly; implicit resolution never uses the native binary path, npm wrapper path, embedded asset path, or `dist-native/` directory as the workspace.
   blockers: []
   updated: 2026-06-03
 

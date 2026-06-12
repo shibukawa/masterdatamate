@@ -4,11 +4,13 @@ import { serveStatic } from "@hono/node-server/serve-static";
 import { cp, readFile, writeFile, mkdir, readdir, rename, rm, realpath } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import path from "node:path";
+import { createHash } from "node:crypto";
 import YAML from "yaml";
 
 const ROOT = process.cwd();
 const SCHEMA_ROOT = path.join(ROOT, "masterdata", "schema");
 const GENERATION_ROOT = path.join(ROOT, "masterdata", "generations");
+const BINARY_ROOT = path.join(ROOT, "masterdata", "binaries");
 const GENERATION_SETTINGS_FILE = path.join(GENERATION_ROOT, "_config.yaml");
 const DEFAULT_GENERATION = "0000_initial";
 const EXPORT_FORMATS = new Set(["csv_zip", "json_zip", "yaml_zip", "sql", "xlsx", "ndjson_zip", "sqlite"]);
@@ -19,6 +21,71 @@ const app = new Hono();
 
 function yamlPath(...parts) {
   return path.join(...parts);
+}
+
+function stableStringify(value) {
+  if (Array.isArray(value)) return `[${value.map(stableStringify).join(",")}]`;
+  if (value && typeof value === "object") {
+    return `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${stableStringify(value[key])}`).join(",")}}`;
+  }
+  return JSON.stringify(value);
+}
+
+function parseKeyParam(value) {
+  if (value?.startsWith("{") || value?.startsWith("[")) {
+    try {
+      return JSON.parse(value);
+    } catch {
+      return value;
+    }
+  }
+  return value ?? "";
+}
+
+function safePrimaryKeyStem(key) {
+  if (typeof key === "string" && /^[A-Za-z0-9_-]+$/.test(key)) return key;
+  const serialized = typeof key === "string" ? key : stableStringify(key);
+  return `key_${Buffer.from(serialized, "utf8").toString("base64url")}`;
+}
+
+function extensionFromName(name) {
+  const extension = path.extname(name ?? "").replace(/^\./, "").toLowerCase();
+  if (!extension || !/^[a-z0-9][a-z0-9_-]*$/.test(extension)) throw httpError(400, "Uploaded file must have a safe extension.");
+  return extension;
+}
+
+async function assertPathInside(rootPath, targetPath) {
+  await mkdir(rootPath, { recursive: true });
+  const root = await realpath(rootPath);
+  const parentPath = path.dirname(targetPath);
+  await mkdir(parentPath, { recursive: true });
+  const parent = await realpath(parentPath);
+  const relative = path.relative(root, parent);
+  if (relative.startsWith("..") || path.isAbsolute(relative)) throw httpError(422, "Resolved path is outside the allowed root.");
+}
+
+async function binaryAssetPath(table, key, extension) {
+  if (!/^[A-Za-z0-9_][A-Za-z0-9_-]*$/.test(table)) throw httpError(400, "Invalid table name.");
+  if (!/^[a-z0-9][a-z0-9_-]*$/.test(extension)) throw httpError(400, "Invalid extension.");
+  const filePath = path.join(BINARY_ROOT, table, `${safePrimaryKeyStem(key)}.${extension}`);
+  await assertPathInside(BINARY_ROOT, filePath);
+  return filePath;
+}
+
+async function findBinaryAsset(table, key) {
+  const dir = path.join(BINARY_ROOT, table);
+  await assertPathInside(BINARY_ROOT, path.join(dir, ".keep"));
+  if (!existsSync(dir)) return null;
+  const stem = safePrimaryKeyStem(key);
+  const files = await readdir(dir);
+  const found = files.find((file) => file.startsWith(`${stem}.`));
+  if (!found) return null;
+  const filePath = path.join(dir, found);
+  await assertPathInside(BINARY_ROOT, filePath);
+  return {
+    filePath,
+    extension: path.extname(found).replace(/^\./, "").toLowerCase()
+  };
 }
 
 function generationPath(generationId) {
@@ -1391,6 +1458,49 @@ function keyFromRow(row, schema) {
   return Object.fromEntries(schema.primary_key.map((field) => [field, row[field] ?? ""]));
 }
 
+function binaryFields(schema) {
+  return (schema.fields ?? []).filter((field) => field.type === "binary_file");
+}
+
+function binaryFieldByName(schema, fieldName) {
+  return binaryFields(schema).find((field) => field.system_name === fieldName);
+}
+
+function allowedExtensions(field) {
+  return (field.binary?.allowed_extensions ?? field.allowed_extensions ?? []).map((item) => String(item).toLowerCase());
+}
+
+function allowedMimeTypes(field) {
+  return (field.binary?.allowed_mime_types ?? field.allowed_mime_types ?? []).map((item) => String(item).toLowerCase());
+}
+
+function maxBinarySize(field) {
+  const value = field.binary?.max_size_bytes ?? field.max_size_bytes;
+  return value === undefined || value === null || value === "" ? null : Number(value);
+}
+
+async function recordExists(table, generationId, key) {
+  const { schema, rows } = await loadRows(table, generationId);
+  const comparable = normalizeComparable(key);
+  return rows.some((row) => normalizeComparable(keyFromRow(row, schema)) === comparable);
+}
+
+async function removeExistingBinaryWithDifferentExtension(table, key, extension) {
+  const existing = await findBinaryAsset(table, key);
+  if (existing && existing.extension !== extension) await rm(existing.filePath, { force: true });
+}
+
+function binaryMetadata(file, extension, bytes) {
+  return {
+    extension,
+    mime_type: file.type || "application/octet-stream",
+    size_bytes: bytes.byteLength,
+    sha256: createHash("sha256").update(bytes).digest("hex"),
+    original_name: file.name ?? `upload.${extension}`,
+    updated_at: new Date().toISOString()
+  };
+}
+
 function keyToRow(key, schema) {
   if (schema.primary_key.length === 1) return { [schema.primary_key[0]]: key };
   return typeof key === "object" && key ? key : {};
@@ -1601,6 +1711,34 @@ async function validateRows(table, generationId, rows, mode = "active_only") {
           diagnostics.push({ severity: "error", table, generationId, rowIndex, field: fieldName, message: `${field.business_name} references missing ${target} key: ${value}.` });
         }
       }
+      if (field.type === "binary_file") {
+        if (!value || typeof value !== "object") {
+          diagnostics.push({ severity: "error", table, generationId, rowIndex, field: fieldName, message: `${field.business_name} must be uploaded.` });
+          continue;
+        }
+        const extension = String(value.extension ?? "").toLowerCase();
+        const extensions = allowedExtensions(field);
+        if (!extension) {
+          diagnostics.push({ severity: "error", table, generationId, rowIndex, field: fieldName, message: `${field.business_name} metadata is missing extension.` });
+        } else if (extensions.length && !extensions.includes(extension)) {
+          diagnostics.push({ severity: "error", table, generationId, rowIndex, field: fieldName, message: `${field.business_name} must use one of: ${extensions.join(", ")}.` });
+        }
+        const mimes = allowedMimeTypes(field);
+        const mimeType = String(value.mime_type ?? "").toLowerCase();
+        if (mimes.length && mimeType && !mimes.includes(mimeType)) {
+          diagnostics.push({ severity: "error", table, generationId, rowIndex, field: fieldName, message: `${field.business_name} MIME type is not allowed: ${mimeType}.` });
+        }
+        const maxSize = maxBinarySize(field);
+        if (maxSize && Number(value.size_bytes ?? 0) > maxSize) {
+          diagnostics.push({ severity: "error", table, generationId, rowIndex, field: fieldName, message: `${field.business_name} exceeds ${maxSize} bytes.` });
+        }
+        if (extension) {
+          const filePath = await binaryAssetPath(table, key, extension);
+          if (!existsSync(filePath)) {
+            diagnostics.push({ severity: "error", table, generationId, rowIndex, field: fieldName, message: `${field.business_name} file is missing from masterdata/binaries.` });
+          }
+        }
+      }
     }
   }
 
@@ -1641,6 +1779,77 @@ app.post("/api/tables/:table/generations/:generationId/validate", async (c) => {
   const generationId = c.req.param("generationId");
   const body = await c.req.json();
   return c.json({ diagnostics: await validateRows(table, generationId, body.rows ?? [], body.mode ?? "active_only") });
+});
+
+app.get("/api/binaries/:table/:key", async (c) => {
+  const table = c.req.param("table");
+  await loadSchema(table);
+  const key = parseKeyParam(c.req.param("key"));
+  const found = await findBinaryAsset(table, key);
+  if (!found) throw httpError(404, "Binary asset not found.");
+  const bytes = await readFile(found.filePath);
+  const contentType = found.extension === "png" ? "image/png"
+    : found.extension === "jpg" || found.extension === "jpeg" ? "image/jpeg"
+    : found.extension === "gif" ? "image/gif"
+    : found.extension === "svg" ? "image/svg+xml"
+    : "application/octet-stream";
+  c.header("Content-Type", contentType);
+  c.header("Content-Length", String(bytes.byteLength));
+  return c.body(bytes);
+});
+
+app.post("/api/binaries/:table/:key", async (c) => {
+  const table = c.req.param("table");
+  const key = parseKeyParam(c.req.param("key"));
+  const schema = await loadSchema(table);
+  const body = await c.req.parseBody();
+  const file = body.file;
+  const fieldName = typeof body.field === "string" ? body.field : "";
+  const generationId = typeof body.generationId === "string" && body.generationId ? body.generationId : DEFAULT_GENERATION;
+  await requireGeneration(generationId);
+  if (!file || typeof file !== "object" || typeof file.arrayBuffer !== "function") throw httpError(400, "Multipart field 'file' is required.");
+  if (!await recordExists(table, generationId, key)) throw httpError(404, "Record not found for binary upload.");
+
+  const fields = binaryFields(schema);
+  const field = fieldName ? binaryFieldByName(schema, fieldName) : (fields.length === 1 ? fields[0] : null);
+  if (!field) throw httpError(422, "Binary upload field is not declared in schema.");
+
+  const extension = extensionFromName(file.name);
+  const extensions = allowedExtensions(field);
+  if (extensions.length && !extensions.includes(extension)) throw httpError(422, `Unsupported file extension: ${extension}`);
+
+  const mimeType = String(file.type || "application/octet-stream").toLowerCase();
+  const mimes = allowedMimeTypes(field);
+  if (mimes.length && !mimes.includes(mimeType)) throw httpError(422, `Unsupported MIME type: ${mimeType}`);
+
+  const bytes = Buffer.from(await file.arrayBuffer());
+  const maxSize = maxBinarySize(field);
+  if (maxSize && bytes.byteLength > maxSize) throw httpError(413, `Uploaded file exceeds ${maxSize} bytes.`);
+
+  await removeExistingBinaryWithDifferentExtension(table, key, extension);
+  const filePath = await binaryAssetPath(table, key, extension);
+  await writeFile(filePath, bytes);
+  const metadata = binaryMetadata(file, extension, bytes);
+  return c.json({
+    saved: true,
+    metadata,
+    asset: {
+      table,
+      key,
+      field: field.system_name,
+      url: `/api/binaries/${encodeURIComponent(table)}/${encodeURIComponent(typeof key === "object" ? stableStringify(key) : String(key))}`
+    }
+  });
+});
+
+app.delete("/api/binaries/:table/:key", async (c) => {
+  const table = c.req.param("table");
+  await loadSchema(table);
+  const key = parseKeyParam(c.req.param("key"));
+  const found = await findBinaryAsset(table, key);
+  if (!found) return c.json({ deleted: false, metadata: null });
+  await rm(found.filePath, { force: true });
+  return c.json({ deleted: true, metadata: null });
 });
 
 app.post("/api/tables/:table/generations/:generationId/records/commit", async (c) => {

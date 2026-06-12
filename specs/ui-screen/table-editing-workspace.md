@@ -25,6 +25,9 @@ Schema editing is also not embedded in the table record grid. Users navigate to 
 - Select constant values from allowed options.
 - Select external references by human-readable names while storing only referenced primary key values.
 - Select external references from lookup candidates labeled as `<referenced name> (<primary key>)`, show the selected referenced name in the grid cell, and persist only the referenced primary key value.
+- Upload files attached to records without leaving the table editor.
+- Upload a file by clicking a binary-file cell to open a file dialog.
+- Upload a file by dragging and dropping it onto a binary-file cell or unambiguous record upload target.
 - See validation errors close to the affected table cell or record.
 - See formula field values as read-only computed cells.
 - Save edited table data back to canonical YAML.
@@ -40,7 +43,9 @@ Schema editing is also not embedded in the table record grid. Users navigate to 
 - See when an older record with the same primary key is overridden by a newer selected generation.
 - Open project export from the left pane without treating export as an operation on the selected table.
 - Scroll a long table list without losing access to the product title, generation selector, Export, or schema editing actions.
+- Open a configured sidebar plugin from the left navigation when the plugin is the primary editor for a domain area.
 - Open a configured visual or domain-specific editor plugin for the selected record when grid editing is a poor fit.
+- Open a configured record-action plugin from a table row or selected row action.
 - Open a configured plugin for one selected record, one selected grouping key, or the whole table depending on the plugin entry mode.
 - Return from a plugin editor without losing table, generation, display mode, or dirty-state protections.
 
@@ -64,12 +69,14 @@ Schema editing is also not embedded in the table record grid. Users navigate to 
 - Commit confirmation shown because validation errors exist.
 - External reference lookup with no match, one match, or ambiguous matches.
 - External reference selected with display label resolved but canonical stored value remaining as the referenced primary key.
+- Binary file field empty, upload-ready, uploading, uploaded, replace-pending, delete-pending, and upload-error states.
 - Save ready.
 - Save allowed with validation errors after user confirmation and `force: true`.
 - Save blocked by validation errors when configured.
 - Later slice: export ready.
 - Later slice: export blocked by validation errors.
 - Plugin editor available for selected table or record.
+- Sidebar plugin navigation item available.
 - Plugin record-entry selection row selected.
 - Plugin group-entry grouping row selected.
 - Plugin table-entry action opened without intermediate selection.
@@ -82,13 +89,14 @@ Schema editing is also not embedded in the table record grid. Users navigate to 
 - Later slice: load a generation-aware table view that includes active-generation records plus optional previous-generation records.
 - Validate table data in the frontend while changes are pending.
 - Resolve external reference candidates through `/api/tables/:table/references`.
+- Upload, download, preview, and delete record binary assets through host binary asset APIs.
 - Commit pending row operations through `POST /api/tables/:table/generations/:generationId/records/commit`.
 - On commit with validation errors, show a confirmation dialog before retrying with `force: true`.
 - Notify users when saving with validation errors is allowed by explicit confirmation.
 - Block saving when validation errors exist and the table or project configuration requires strict save validation.
 - Later slice: merge selected generations for export and override status display.
 - Later slice: run export adapter.
-- Later slice: discover editor plugins applicable to the selected table or record.
+- Later slice: discover editor plugins applicable to the left navigation, selected table, selected record, or selected grouping row.
 - Later slice: load scoped plugin data and commit plugin change sets through host APIs.
 
 ## Table Component
@@ -102,7 +110,7 @@ Schema editing is also not embedded in the table record grid. Users navigate to 
 - Keep the left pane dedicated to active generation context and vertical table navigation.
 - Structure the left pane as a vertical flexbox with fixed top controls, flexible table navigation, and fixed bottom project actions.
 - The fixed top controls include the product title, active edit generation selector, and generation metadata edit icon.
-- The flexible middle region contains the table list and is the only sidebar region that scrolls when tables exceed available height.
+- The flexible middle region contains data navigation entries and is the only sidebar region that scrolls when entries exceed available height.
 - The fixed bottom project action region contains the project-level `Export` button and the schema/settings action.
 - The sidebar container itself should constrain height to the viewport and avoid scrolling during normal table editing.
 - The top and bottom sidebar regions must not shrink or scroll away when the middle table list overflows.
@@ -124,21 +132,27 @@ Schema editing is also not embedded in the table record grid. Users navigate to 
 - The export dialog must keep explicit generation selection separate from persisted format options.
 - The active edit generation selector must not be duplicated in the table top bar.
 - The table top bar may contain the generation display mode control, save controls, grid mode controls, and table-specific actions.
-- The table top bar may contain a compact plugin action when one or more editor plugins apply to the selected table or selected record.
-- A `record` entry plugin action is enabled only when exactly one editable or readonly context record row is selected as the entry record.
-- A `group` entry plugin action opens or focuses a grouping `extable` selection surface where each row represents one distinct grouping key.
-- A `table` entry plugin action opens the plugin immediately without showing an intermediate `extable` selection grid.
+- The left navigation may contain plugin entries declared with `entry_points.placement: sidebar`. These entries appear alongside table entries but must be visually identifiable as custom editors.
+- The ordinary table list includes only tables whose schema `ui.table_list_visibility` is omitted or `visible`.
+- Tables with `ui.table_list_visibility: plugin_only` are hidden from the ordinary table list but remain available to plugin scopes, validation, export, references, schema editing, diagnostics, and explicit repair tooling.
+- Tables with `ui.table_list_visibility: hidden` are hidden from ordinary data navigation and should be surfaced only through explicit tooling, schema editing, diagnostics, or plugin scopes that declare them.
+- If a hidden or plugin-only table has a broken `ui.preferred_plugin` or no valid plugin entry point for normal editing, the UI should show a configuration diagnostic in a reachable place such as schema diagnostics or plugin discovery diagnostics.
+- The table top bar may contain compact plugin actions declared with `entry_points.placement: table_toolbar`, `record_action`, or `group_action`.
+- A `record_action` plugin action is enabled only when exactly one editable or readonly context record row is selected as the entry record, or when invoked from one specific row's action menu.
+- A `group_action` plugin action opens or focuses a grouping `extable` selection surface where each row represents one distinct grouping key.
+- A `table_toolbar` plugin action opens a whole-table plugin immediately when its effective mode is `table`, or opens the grouping chooser when its effective mode is `group`.
 - The grouping selection surface is not canonical data editing; it is a derived chooser for opening a plugin scope.
 - Grouping rows should show the grouping value, optional display label, record count, and validation status summary when available.
 - Selecting a grouping row must preserve the selected table, active generation, and display mode.
 - Plugin actions must be visually distinct from table navigation rows and project-level actions.
+- Sidebar plugin entries must use the plugin label and should not masquerade as ordinary table names when the underlying table is hidden or plugin-only.
 - Opening a plugin editor for the selected record must preserve the active generation, display mode, selected table, and selected record context.
 - Opening a plugin editor from a grouping row must preserve the active generation, display mode, selected table, and selected grouping key.
 - Opening a table-entry plugin must preserve the active generation, display mode, and selected table.
 - If the table grid has unsaved edits, opening a plugin editor must use the same dirty-state confirmation flow as other navigation away from table editing.
 - If the plugin editor has unsaved edits, returning to the grid must use the same dirty-state confirmation flow before discarding plugin changes.
 - The plugin editor should reuse shared frontend chrome for Save, Revert, diagnostics, and return-to-grid controls where practical.
-- The plugin editor must not hide the existence of the ordinary table editor; users must be able to return to the grid for the same records.
+- The plugin editor must not hide the existence of ordinary table data. For `visible` tables, users must be able to return to the grid for the same records. For `plugin_only` or `hidden` tables, the host must still provide developer/admin recovery paths through schema diagnostics, explicit tooling, or direct repair views.
 - Do not present `Data editing`, `Generation editing`, or `Schema editing` as peer navigation items in the table list; those page labels are too visually similar to table choices and make the left pane ambiguous.
 - Keep the grid area large enough for spreadsheet-like editing across many columns and rows.
 - Do not embed generation metadata editing controls or a generation metadata grid in the table editing workspace.
@@ -157,6 +171,15 @@ Schema editing is also not embedded in the table record grid. Users navigate to 
 - Inserted rows are always created in the active edit generation.
 - Commit operations must include only changes to rows in the active edit generation.
 - Use `extable` column schemas for scalar, enum, boolean, date, time, datetime, and lookup-like reference fields.
+- Use file upload controls for `binary_file` fields.
+- A binary-file cell should show upload state, original filename or derived filename, extension, and validation status when available.
+- Clicking an editable binary-file cell opens a file picker.
+- Dragging a file onto an editable binary-file cell uploads or stages that file for the row.
+- Dragging a file onto a row is allowed only when the row has exactly one editable binary-file field; otherwise the UI must require a specific cell target.
+- Uploading a file must call the host binary asset API and receive normalized metadata before the row value is updated.
+- Replacing a file should update both the stored binary file and the cell metadata.
+- Deleting a file should remove the stored binary file and clear the cell metadata after confirmation when the field is required or currently populated.
+- The grid must not embed file bytes in `extable` row state beyond transient browser `File` objects needed for upload.
 - Map external reference fields to an `extable` lookup-capable display type, such as `labeled`, when the grid stores `{ label, value }` objects for display while canonical commits store only `value`.
 - Lookup candidate labels should include both the referenced display name and primary key, such as `Product Team (org-product)`, to disambiguate similarly named records.
 - After a lookup candidate is selected, the grid cell should display the referenced display name only, while the commit payload and YAML output retain the referenced primary key.
@@ -181,7 +204,7 @@ Schema editing is also not embedded in the table record grid. Users navigate to 
 - Do not open the table editor when the active generation `_config.yaml` is missing or invalid.
 - If the table YAML file is missing for the active generation, open an empty table and create the YAML file on first commit.
 - The editor layout must constrain page height so the browser page itself does not scroll during normal table editing. The left navigation, toolbar, grid viewport, and footer should be arranged with grid or flexbox, and table overflow should remain inside the `extable` viewport.
-- Large table catalogs must not push `Export` or `Edit schemas` below the viewport; only the table navigation list receives overflow scrolling.
+- Large table and plugin catalogs must not push `Export` or `Edit schemas` below the viewport; only the data navigation list receives overflow scrolling.
 
 ## Generation-Aware Data View
 
@@ -217,6 +240,7 @@ Schema editing is also not embedded in the table record grid. Users navigate to 
 
 - [Generic master data model](../data-model/generic-master-data-model.md)
 - [Table schema model](../data-model/table-schema-model.md)
+- [Binary asset model](../data-model/binary-asset-model.md)
 - [Editor plugin model](../data-model/editor-plugin-model.md)
 - [Export settings model](../data-model/export-settings-model.md)
 - [Generation merge and export flow](../data-flow/generation-merge-and-export-flow.md)

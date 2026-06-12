@@ -11,7 +11,7 @@ GO ?= go
 NPM ?= npm
 
 GOCACHE_DIR := $(CURDIR)/.cache/go-build
-GOFLAGS ?= -mod=mod
+GOFLAGS ?= -mod=mod -ldflags="-s -w" -trimpath
 GOCACHE_ENV := GOCACHE=$(GOCACHE_DIR)
 
 FRONTEND_DIST := dist

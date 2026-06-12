@@ -13,26 +13,27 @@ facts:
 
 ## Summary
 
-The HTML editor plugin runtime lets a project provide an HTML file with embedded or bundled JavaScript that acts as a domain-specific editor for one or more master data tables. The runtime is used when ordinary grid entry is a poor fit, such as editing a map master row together with many map item rows.
+The HTML editor plugin runtime lets a project provide built static HTML, JavaScript, and CSS assets that act as a domain-specific editor for one or more master data tables. A plugin may start as a single hand-authored HTML file, or it may be a source project built with Vite, React, Vue, or another frontend toolchain. The runtime is used when ordinary grid entry is a poor fit, such as editing a map master row together with many map item rows.
 
 The application host owns loading, validation, dirty-state handling, commit confirmation, and YAML persistence. The plugin owns only its visual editing UI and transforms user interactions into table-scoped change proposals.
 
 ## Responsibilities
 
 - Discover available editor plugins from [Editor plugin model](../data-model/editor-plugin-model.md) declarations.
-- Show applicable plugins for the currently selected table, selected record, or selected grouping row.
-- Load the plugin entry HTML in an isolated editor surface.
+- Show applicable plugins for the left navigation, currently selected table, selected record, or selected grouping row.
+- Load the plugin's built `entry_html` and its relative static assets in an isolated editor surface.
 - Build a scoped data bundle from the active edit generation, selected entry scope, declared target tables, and declared filters.
 - Call the plugin entry function with host APIs and initial data.
 - Receive plugin change notifications and convert them into pending commit operations.
 - Keep plugin edits in the same dirty-state lifecycle as `extable` commit mode.
 - Validate pending plugin changes before save.
 - Save plugin changes through the same host commit APIs used by table editing.
+- Provide scoped binary upload APIs for plugin UIs that need to attach files to records.
 - Reload canonical records after save so plugin state reflects normalized server output.
 
 ## Plugin Entry Contract
 
-Each plugin entry HTML must register one entry function on `window.MasterDataMatePlugin`.
+Each plugin's built `entry_html` must register one entry function on `window.MasterDataMatePlugin`. The function may come from inline JavaScript, from a bundled module emitted by a build tool, or from another relative script referenced by the HTML.
 
 ```ts
 type PluginEntry = (context: PluginContext) => PluginInstance | Promise<PluginInstance>;
@@ -41,12 +42,19 @@ type PluginContext = {
   pluginId: string;
   generationId: string;
   mode: "active_only" | "include_previous";
+  entryPoint: PluginEntryPointRef;
   entry: PluginEntryScope;
   tables: Record<string, PluginTableData>;
   primarySelection?: PluginRecordRef;
   groupSelection?: PluginGroupRef;
   host: PluginHostApi;
   settings: unknown;
+};
+
+type PluginEntryPointRef = {
+  entryPointId: string;
+  placement: "sidebar" | "table_toolbar" | "record_action" | "group_action";
+  table?: string;
 };
 
 type PluginEntryScope =
@@ -74,6 +82,9 @@ type PluginHostApi = {
   setDirty(dirty: boolean): void;
   proposeChanges(changes: PluginChangeSet): Promise<PluginValidationResult>;
   requestSave(options?: { force?: boolean }): Promise<PluginSaveResult>;
+  uploadBinaryAsset(request: PluginBinaryUploadRequest): Promise<PluginBinaryAssetResult>;
+  deleteBinaryAsset(request: PluginBinaryDeleteRequest): Promise<PluginBinaryAssetResult>;
+  getBinaryAssetUrl(request: PluginBinaryAssetRef): Promise<string>;
   reload(): Promise<void>;
   notify(message: PluginNotice): void;
 };
@@ -86,6 +97,27 @@ type PluginInstance = {
 ```
 
 The exact TypeScript names are descriptive. Implementations may ship plain JavaScript, but the runtime behavior must preserve this contract.
+
+## Built Asset Contract
+
+- The host loads only the built runtime asset tree declared by `entry_html` and related asset paths from [Editor plugin model](../data-model/editor-plugin-model.md).
+- Plugin declarations, source projects, and built runtime assets are scoped under `masterdata/editor_plugins.yaml` and `masterdata/plugins`.
+- Source directories, package manifests, lockfiles, and dependency folders are authoring inputs; they must not be served by plugin asset routes unless they are also inside the declared built output tree.
+- The built `entry_html` must be self-contained through relative references to JavaScript, CSS, images, and other static files in the same output tree.
+- Build systems should emit relative URLs, such as Vite `base: "./"`, so plugin assets work when loaded from a host route, iframe, local static server, or packaged host.
+- The application may expose tooling or diagnostics for stale or missing built outputs, but opening a plugin must not require running npm, Vite, or another build process at runtime.
+- A single static HTML file remains valid when it directly satisfies the same entry function and asset isolation rules.
+
+## Binary Asset API Contract
+
+- `uploadBinaryAsset` accepts a browser `File` or equivalent binary blob plus table, record key, and optional field name.
+- The host writes file bytes using [Binary asset model](../data-model/binary-asset-model.md), normally under `masterdata/binaries/<table>/<primary-key>.<extension>`.
+- The host returns normalized metadata such as extension, MIME type, size, hash, original filename, and a derived asset URL.
+- The plugin should include returned metadata in its proposed table change set when the corresponding `binary_file` field should be updated.
+- `deleteBinaryAsset` removes the stored file and returns metadata suitable for clearing the record field.
+- `getBinaryAssetUrl` returns a host-served URL for preview or download, not a raw filesystem path.
+- Binary APIs are scoped to records included in the plugin context and tables declared in the plugin model.
+- Plugin code must not write binary files directly and must not construct filesystem paths.
 
 ## Change Set Contract
 
@@ -102,20 +134,24 @@ The exact TypeScript names are descriptive. Implementations may ship plain JavaS
 
 ## Opening Flow
 
-1. The frontend finds plugins applicable to the selected table.
-2. For `open_mode: record`, the app shows the ordinary table `extable`; each row represents one canonical record, and the user selects one row before opening the plugin.
-3. For `open_mode: group`, the app shows a derived `extable` grouping grid; each row represents one group key such as an external reference value, and the user selects one grouping row before opening the plugin.
-4. For `open_mode: table`, the app skips the selection grid and opens the plugin immediately from the table-level plugin action.
-5. The host checks dirty-state for the current editing surface before leaving or replacing it.
-6. The host loads schemas and records for every declared target table.
-7. The host resolves the entry scope:
+1. The frontend finds plugin entry points applicable to the left navigation, selected table, selected record, or selected grouping row.
+2. For `entry_points.placement: sidebar`, the app shows a plugin item in the left navigation and opens it without requiring a selected table row.
+3. For `entry_points.placement: record_action`, the app shows an action for one selected row or one row action menu; each row represents one canonical record.
+4. For `entry_points.placement: group_action`, the app shows or focuses a derived `extable` grouping grid; each row represents one group key such as an external reference value.
+5. For `entry_points.placement: table_toolbar`, the app shows a table-level action. It opens directly for `open_mode: table` or opens the grouping chooser for `open_mode: group`.
+6. The host checks dirty-state for the current editing surface before leaving or replacing it.
+7. The host resolves the plugin declaration and entry point to the built `entry_html` and verifies that the runtime asset path is inside the declared plugin asset area.
+8. The host loads schemas and records for every declared target table.
+9. The host resolves the entry scope:
    - `record`: selected record plus declared related records.
    - `group`: every record matching the selected group key plus declared related records.
    - `table`: all records in the declared table scope.
-8. The plugin entry function initializes its UI from the provided bundle.
-9. User interactions call `host.proposeChanges` or local plugin state methods.
-10. The shared frontend marks the plugin surface dirty when pending changes exist.
-11. Save validates, optionally confirms validation errors, commits through host APIs, reloads data, and updates the plugin context.
+10. The runtime includes the selected entry point in `PluginContext.entryPoint`.
+11. The runtime loads the built entry HTML in the isolated surface.
+12. The plugin entry function initializes its UI from the provided bundle.
+13. User interactions call `host.proposeChanges` or local plugin state methods.
+14. The shared frontend marks the plugin surface dirty when pending changes exist.
+15. Save validates, optionally confirms validation errors, commits through host APIs, reloads data, and updates the plugin context.
 
 ## Entry Point Modes
 
@@ -123,7 +159,9 @@ The exact TypeScript names are descriptive. Implementations may ship plain JavaS
 - `group` mode is for many records that share one field value, usually an external key. The selection grid row maps to a grouping key and does not correspond to a stored record.
 - `table` mode is for whole-table or multi-table editors. It opens immediately and should be used only when showing an intermediate selection grid would add no useful context.
 - The host must include the selected mode in `PluginContext.entry`.
+- The host must include the selected launch placement in `PluginContext.entryPoint`.
 - A plugin must not infer its entry mode from UI state; it should use the explicit `entry.kind`.
+- A plugin must not infer where it was launched from URL shape or DOM placement; it should use the explicit `entryPoint.placement`.
 - The shared frontend must keep entry-mode navigation reversible so the user can return to the table grid or grouping grid that opened the plugin.
 
 ## Map Editor Example
@@ -154,9 +192,10 @@ The exact TypeScript names are descriptive. Implementations may ship plain JavaS
 
 ## Runtime Isolation
 
-- Plugin HTML is loaded in an iframe or equivalent isolated surface.
+- Built plugin HTML is loaded in an iframe or equivalent isolated surface.
 - The host exposes only the `PluginHostApi`; it must not expose raw filesystem APIs, arbitrary HTTP clients, shell access, or unscoped application internals.
 - The plugin must not receive records from undeclared tables.
+- The plugin must not receive raw binary filesystem paths; previews and downloads use host URLs.
 - The plugin must not modify DOM outside its isolated surface.
 - The plugin should not depend on global application CSS.
 - The host should apply a content security policy appropriate for local plugin loading.
@@ -169,6 +208,7 @@ The exact TypeScript names are descriptive. Implementations may ship plain JavaS
 - In `active_only` mode, writable records come only from the active generation.
 - In `include_previous` mode, previous-generation records may be shown as readonly context when included in the scoped bundle.
 - A plugin must not update or delete records whose `isReadOnly` is true.
+- A plugin must not upload, replace, or delete binary assets for readonly records.
 - Inserts are created in the active edit generation.
 - Commit operations must include only active-generation writes.
 - Reference lookup and validation follow the same generation-aware rules as ordinary table editing.
@@ -185,11 +225,12 @@ The exact TypeScript names are descriptive. Implementations may ship plain JavaS
 
 ## Failure Handling
 
-- If plugin HTML fails to load, the user remains in the ordinary table editing workspace.
+- If the built plugin HTML or one of its required relative assets fails to load, the user remains in the ordinary table editing workspace.
 - If the entry function is missing or throws during initialization, the host shows a plugin-load diagnostic and keeps canonical data unchanged.
 - If `dispose` throws during navigation away, the host logs the error and continues dirty-state handling from host-owned pending changes.
 - If a plugin proposes out-of-scope writes, the host rejects the change set and marks it as a plugin contract violation.
 - If save partially fails because atomic multi-table commit is unavailable, the host must reload affected tables and show a recovery diagnostic with the tables whose writes completed.
+- If binary upload succeeds but metadata commit fails, the host must return a recovery diagnostic and make the current asset state reloadable.
 
 ## Dependencies
 
@@ -198,18 +239,22 @@ The exact TypeScript names are descriptive. Implementations may ship plain JavaS
 - [Table editing workspace](../ui-screen/table-editing-workspace.md)
 - [Schema validation engine](schema-validation-engine.md)
 - [Web service host](../server-component/web-service-host.md)
+- [Binary asset model](../data-model/binary-asset-model.md)
 
 ## Reads
 
 - Plugin declarations.
-- Plugin HTML and static assets.
+- Built plugin HTML and static assets.
+- Optional plugin source/build metadata for diagnostics and developer tooling.
 - Scoped schemas and records for declared target tables.
+- Binary asset metadata and preview/download URLs for scoped records when requested.
 - Active generation and generation display mode from the shared frontend state.
 
 ## Writes
 
 - Pending frontend change sets.
 - Canonical table records through host commit APIs.
+- Binary files through scoped host binary asset APIs.
 - Optional plugin settings through a future settings API.
 
 ## Related Requirements
@@ -220,4 +265,4 @@ The exact TypeScript names are descriptive. Implementations may ship plain JavaS
 
 ## Native-Language Summary
 
-HTML と JavaScript で作った専用 UI を、通常の表編集と同じ保存・検証・世代ルールに接続するランタイム。マップマスター 1 行を選んで、同じ map_id を持つマップアイテム複数行を同時に読み込み、ドラッグや追加削除を canonical なテーブル変更として保存する。プラグインは YAML を直接書かず、ホストがスコープ確認、検証、保存、再読み込みを担当する。
+HTML と JavaScript で作った専用 UI を、通常の表編集と同じ保存・検証・世代ルールに接続するランタイム。単体 HTML でも、React/Vue/Vite などでビルドした静的アセットでもよいが、実行時にホストがロードするのは `entry_html` が指すビルド済み成果物であり、ソースプロジェクトや npm 依存はプラグイン起動時に実行しない。マップマスター 1 行を選んで、同じ map_id を持つマップアイテム複数行を同時に読み込み、ドラッグや追加削除を canonical なテーブル変更として保存する。プラグインは YAML を直接書かず、ホストがスコープ確認、検証、保存、再読み込みを担当する。

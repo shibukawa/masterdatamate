@@ -1,0 +1,81 @@
+plugins:
+  - plugin_id: enemy-status-editor
+    display_name: Enemy status editor
+    description: Preview one enemy image, edit combat parameters, and show a radar chart.
+    entry_html: plugins/enemy-status-editor/index.html
+    source_dir: plugins/enemy-status-editor-react
+    build:
+      working_dir: plugins
+      command: npm run build:enemy
+      output_dir: plugins/enemy-status-editor
+    version: "1"
+    open_mode: record
+    entry_points:
+      - entry_id: enemy-record
+        placement: record_action
+        label: Enemy editor
+        table: enemy
+        open_mode: record
+        default: true
+    target_tables:
+      - role: primary
+        table: enemy
+        required: true
+        write: true
+    permissions:
+      read_tables: [enemy]
+      write_tables: [enemy]
+      read_binaries: [enemy]
+      write_binaries: [enemy]
+    capabilities:
+      - image_preview
+      - binary_upload
+      - parameter_edit
+      - radar_chart
+
+  - plugin_id: maze-grid-editor
+    display_name: Maze grid editor
+    description: Edit a 10x10 maze grid with walls, paths, start, goal, and enemy placement.
+    entry_html: plugins/maze-grid-editor/index.html
+    source_dir: plugins/maze-grid-editor-vue
+    build:
+      working_dir: plugins
+      command: npm run build:maze
+      output_dir: plugins/maze-grid-editor
+    version: "1"
+    open_mode: record
+    entry_points:
+      - entry_id: maze-map-record
+        placement: record_action
+        label: Maze grid
+        table: maze_map
+        open_mode: record
+        default: true
+    target_tables:
+      - role: primary
+        table: maze_map
+        required: true
+        write: true
+      - role: child
+        table: maze_cell
+        required: true
+        write: true
+        filter:
+          source_table: maze_map
+          source_field: map_id
+          target_field: map_id
+          mode: equals
+      - role: lookup
+        table: enemy
+        required: true
+        write: false
+    permissions:
+      read_tables: [maze_map, maze_cell, enemy]
+      write_tables: [maze_map, maze_cell]
+      read_binaries: [enemy]
+      write_binaries: []
+    capabilities:
+      - coordinate_grid
+      - terrain_paint
+      - start_goal_edit
+      - enemy_placement

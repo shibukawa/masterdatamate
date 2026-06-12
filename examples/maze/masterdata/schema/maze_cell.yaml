@@ -1,0 +1,46 @@
+system_name: maze_cell
+business_name: Maze Cells
+primary_key:
+  - map_id
+  - x
+  - y
+export: true
+ui:
+  table_list_visibility: plugin_only
+comment: One record per cell in a 10x10 maze grid.
+fields:
+  - system_name: map_id
+    business_name: Map ID
+    type: external_reference
+    required: true
+    export: true
+    reference:
+      table: maze_map
+  - system_name: x
+    business_name: X
+    type: integer
+    required: true
+    export: true
+  - system_name: y
+    business_name: Y
+    type: integer
+    required: true
+    export: true
+  - system_name: terrain
+    business_name: Terrain
+    type: constant
+    required: true
+    export: true
+    constants: [wall, path, start, goal]
+  - system_name: enemy_id
+    business_name: Enemy
+    type: external_reference
+    required: false
+    export: true
+    reference:
+      table: enemy
+  - system_name: note
+    business_name: Note
+    type: string
+    required: false
+    export: false

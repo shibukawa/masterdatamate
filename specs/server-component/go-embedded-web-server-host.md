@@ -59,10 +59,11 @@ This host replaces the development-only split between the Vite dev server and th
 - The port is configurable. If a default port is chosen, startup failure due to port conflict must be reported clearly.
 - The workspace root is configurable with `--workspace`.
 - When `--workspace` is omitted, the server resolves the workspace from the process current working directory, not from the executable or wrapper script path.
-- Default workspace resolution walks upward from the current working directory until it finds a project root marker such as `go.mod`, `.git`, `package.json`, or another configured root marker.
-- If a discovered project root contains a `masterdata` directory, that project root is the workspace root and its `masterdata` directory is the canonical data root.
-- If the current working directory itself is inside a `masterdata` tree, resolution must still return the containing project root so schema and generation paths remain `masterdata/schema` and `masterdata/generations`.
-- If no project root containing `masterdata` is found, startup fails clearly unless the user supplied an explicit `--workspace` path.
+- Default workspace resolution first checks whether the current working directory itself contains `masterdata/`; if it does, that directory is the workspace root.
+- If the current working directory does not contain `masterdata/`, default workspace resolution walks upward and selects the nearest ancestor that contains `masterdata/`.
+- Project root markers such as `go.mod`, `.git`, `package.json`, or another configured root marker may help diagnostics, but they must not cause the resolver to skip a nearer nested workspace that contains `masterdata/`.
+- If the current working directory itself is inside a `masterdata` tree, resolution must return the containing workspace root so schema and generation paths remain `masterdata/schema` and `masterdata/generations`.
+- If no directory containing `masterdata/` is found, startup fails clearly unless the user supplied an explicit `--workspace` path.
 - An explicit `--workspace` path is resolved to an absolute path and must contain the canonical `masterdata` directory.
 - Packaged binaries launched directly from `dist-native/` must still load project data based on the user's current working directory or explicit `--workspace`, not based on `dist-native/`.
 - The process logs the listening URL and resolved workspace root on startup.

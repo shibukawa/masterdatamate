@@ -1,0 +1,57 @@
+system_name: enemy
+business_name: Enemies
+primary_key:
+  - enemy_id
+export: true
+comment: Enemy character master. The custom editor previews image and visualizes stats as a radar chart.
+fields:
+  - system_name: enemy_id
+    business_name: Enemy ID
+    type: string
+    required: true
+    export: true
+  - system_name: name
+    business_name: Name
+    type: string
+    required: true
+    export: true
+  - system_name: image
+    business_name: Image
+    type: binary_file
+    required: false
+    export: false
+    binary:
+      allowed_extensions: [png, jpg, jpeg, gif]
+      allowed_mime_types: [image/png, image/jpeg, image/gif]
+      max_size_bytes: 1048576
+  - system_name: hp
+    business_name: HP
+    type: integer
+    required: true
+    export: true
+  - system_name: attack
+    business_name: Attack
+    type: integer
+    required: true
+    export: true
+  - system_name: defense
+    business_name: Defense
+    type: integer
+    required: true
+    export: true
+  - system_name: speed
+    business_name: Speed
+    type: integer
+    required: true
+    export: true
+  - system_name: magic
+    business_name: Magic
+    type: integer
+    required: true
+    export: true
+  - system_name: luck
+    business_name: Luck
+    type: integer
+    required: true
+    export: true
+

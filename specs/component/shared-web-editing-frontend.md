@@ -19,11 +19,12 @@ The shared web editing frontend is the reusable React + Vite UI core for editing
 - In scope:
   - Table navigation and record editing.
   - Schema-aware editors for scalar fields, constants, and external references.
+  - File upload controls for binary file fields.
   - Inline validation diagnostics from [Schema validation engine](schema-validation-engine.md).
   - Generation selection and export target selection UI.
   - YAML-backed load and save integration through host-specific adapters.
   - Integration with npm package `extable` as the primary Excel-like table editing component.
-  - Optional HTML editor plugin surfaces for schema-defined data that is difficult to edit as a grid.
+  - Optional editor plugin surfaces, loaded from built HTML/JavaScript/CSS assets, for schema-defined data that is difficult to edit as a grid.
   - Optional in-app AI assistant panel for natural-language guidance, tool-backed analysis, proposed changes, and confirmed execution.
   - SPA navigation across table editing, generation selection, generation editing, and schema editing pages.
 - Out of scope:
@@ -44,8 +45,9 @@ The shared web editing frontend is the reusable React + Vite UI core for editing
 - React components should call a host adapter layer for application operations so web-server HTTP mode and Wails binding mode can share UI behavior.
 - The first implementation should use the React wrapper from `@extable/react`.
 - Custom editor plugins are alternative editing surfaces, not alternate storage systems. They must read and write through the same host adapter boundary as the ordinary table editor.
-- The shared frontend should discover applicable editor plugins for the selected table or record from [Editor plugin model](../data-model/editor-plugin-model.md) declarations.
-- HTML editor plugins are loaded through the [HTML editor plugin runtime](html-editor-plugin-runtime.md).
+- The shared frontend should discover applicable editor plugin entry points for the left navigation, selected table, selected record, or selected grouping row from [Editor plugin model](../data-model/editor-plugin-model.md) declarations.
+- Tables whose schema declares `ui.table_list_visibility: plugin_only` or `hidden` should not appear as ordinary table navigation entries, but must remain available to plugin scopes, validation, export, schema diagnostics, and explicit repair tooling.
+- Editor plugin assets are loaded through the [HTML editor plugin runtime](html-editor-plugin-runtime.md); source projects such as React/Vue/Vite plugins are built before runtime and are not executed by the shared frontend.
 - The shared frontend may render the [In-app AI assistant panel](../ui-screen/in-app-ai-assistant-panel.md) as a dock, drawer, or focused route.
 - The AI panel must send scoped context through the host adapter rather than reading canonical YAML files directly.
 - The AI panel must render proposed changes and side-effecting tool confirmations through host-owned UI controls.
@@ -117,6 +119,10 @@ The shared web editing frontend is the reusable React + Vite UI core for editing
 - Changing an external reference target keeps stored reference primary-key values unchanged and surfaces unresolved values as validation errors.
 - Formula authoring is disabled until formula implementation is delivered.
 - MasterDataMate schema fields should be mapped into `extable` column schema types where possible: string, number, int, boolean, date, time, datetime, enum, and lookup-style editors.
+- `binary_file` fields should render as file upload cells or controls in table editing.
+- Binary upload cells support clicking to open a file dialog and drag-and-drop onto the cell or row when the target is unambiguous.
+- Binary upload cells call host binary asset APIs; they must not embed file bytes into ordinary table commit payloads.
+- Binary upload results are adapted into canonical metadata values before validation and save.
 - The frontend owns the conversion boundary between canonical API/YAML record shape and the `extable` row model.
 - Server APIs return canonical records and diagnostics; the frontend adapts them to `extable` schemas, rows, pending operations, and diagnostics.
 - External references should use `extable` lookup editor hooks when possible so users select referenced rows by human-readable labels while storing only primary key values.
@@ -143,6 +149,7 @@ The shared web editing frontend is the reusable React + Vite UI core for editing
 ## Dependencies
 
 - [Generic master data model](../data-model/generic-master-data-model.md)
+- [Binary asset model](../data-model/binary-asset-model.md)
 - [Schema validation engine](schema-validation-engine.md)
 - [HTML editor plugin runtime](html-editor-plugin-runtime.md)
 - [AI assistant service](ai-assistant-service.md)

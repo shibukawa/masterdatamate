@@ -1,13 +1,17 @@
 package host
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"io/fs"
 	"mime"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"path"
 	"path/filepath"
@@ -32,6 +36,7 @@ type server struct {
 	root           string
 	schemaRoot     string
 	generationRoot string
+	binaryRoot     string
 	exports        map[string]exportArtifact
 	static         fs.FS
 }
@@ -50,6 +55,7 @@ type schema struct {
 	PrimaryKey      []string         `json:"primary_key" yaml:"primary_key"`
 	Export          bool             `json:"export" yaml:"export"`
 	DependentTables []map[string]any `json:"dependent_tables,omitempty" yaml:"dependent_tables,omitempty"`
+	UI              map[string]any   `json:"ui,omitempty" yaml:"ui,omitempty"`
 	Comment         string           `json:"comment" yaml:"comment,omitempty"`
 	Fields          []field          `json:"fields" yaml:"fields"`
 }
@@ -62,6 +68,7 @@ type field struct {
 	Export       *bool          `json:"export,omitempty" yaml:"export,omitempty"`
 	Reference    map[string]any `json:"reference,omitempty" yaml:"reference,omitempty"`
 	Constants    []string       `json:"constants,omitempty" yaml:"constants,omitempty"`
+	Binary       map[string]any `json:"binary,omitempty" yaml:"binary,omitempty"`
 	DefaultValue any            `json:"default_value,omitempty" yaml:"default_value,omitempty"`
 	Formula      string         `json:"formula,omitempty" yaml:"formula,omitempty"`
 	Comment      string         `json:"comment,omitempty" yaml:"comment,omitempty"`
@@ -102,6 +109,7 @@ func New(root string, embeddedDist fs.FS) (*server, error) {
 		root:           absRoot,
 		schemaRoot:     filepath.Join(absRoot, "masterdata", "schema"),
 		generationRoot: filepath.Join(absRoot, "masterdata", "generations"),
+		binaryRoot:     filepath.Join(absRoot, "masterdata", "binaries"),
 		exports:        map[string]exportArtifact{},
 		static:         static,
 	}
@@ -120,6 +128,7 @@ func NewData(root string) (*server, error) {
 		root:           absRoot,
 		schemaRoot:     filepath.Join(absRoot, "masterdata", "schema"),
 		generationRoot: filepath.Join(absRoot, "masterdata", "generations"),
+		binaryRoot:     filepath.Join(absRoot, "masterdata", "binaries"),
 		exports:        map[string]exportArtifact{},
 	}
 	if err := s.validateWorkspace(); err != nil {
@@ -216,14 +225,23 @@ func (s *server) dispatchAPI(r *http.Request) (int, any, string, []byte, error) 
 		}
 		tables := make([]map[string]any, 0, len(schemas))
 		for _, schema := range schemas {
+			if visibility := tableListVisibility(schema); visibility == "plugin_only" || visibility == "hidden" {
+				continue
+			}
 			tables = append(tables, map[string]any{
 				"table_id": schema.TableID, "system_name": schema.SystemName, "business_name": schema.BusinessName, "comment": schema.Comment,
 			})
 		}
 		return 200, map[string]any{"generationId": defaultGeneration, "tables": tables}, "", nil, nil
 	}
+	if len(parts) >= 2 && parts[1] == "editor-plugins" {
+		return s.dispatchEditorPluginAPI(r, parts)
+	}
 	if len(parts) >= 3 && parts[1] == "tables" {
 		return s.dispatchTableAPI(r, parts)
+	}
+	if len(parts) >= 3 && parts[1] == "binaries" {
+		return s.dispatchBinaryAPI(r, parts)
 	}
 	if len(parts) >= 2 && parts[1] == "schemas" {
 		return s.dispatchSchemaAPI(r, parts)
@@ -292,6 +310,145 @@ func (s *server) dispatchTableAPI(r *http.Request, parts []string) (int, any, st
 		return status, payload, "", nil, err
 	}
 	return 404, nil, "", nil, appError{404, "API route not found"}
+}
+
+func (s *server) dispatchBinaryAPI(r *http.Request, parts []string) (int, any, string, []byte, error) {
+	if len(parts) != 4 {
+		return 404, nil, "", nil, appError{404, "API route not found"}
+	}
+	table := parts[2]
+	key := parseKeyParam(parts[3])
+	if _, err := s.loadSchema(table); err != nil {
+		return 0, nil, "", nil, err
+	}
+	switch r.Method {
+	case http.MethodGet:
+		file, ext, err := s.findBinaryAsset(table, key)
+		if err != nil {
+			return 0, nil, "", nil, err
+		}
+		if file == "" {
+			return 0, nil, "", nil, appError{404, "Binary asset not found."}
+		}
+		data, err := os.ReadFile(file)
+		if err != nil {
+			return 0, nil, "", nil, err
+		}
+		contentType := mime.TypeByExtension("." + ext)
+		if contentType == "" {
+			contentType = "application/octet-stream"
+		}
+		return 200, nil, contentType, data, nil
+	case http.MethodPost:
+		return s.uploadBinaryAsset(r, table, key)
+	case http.MethodDelete:
+		file, _, err := s.findBinaryAsset(table, key)
+		if err != nil {
+			return 0, nil, "", nil, err
+		}
+		if file == "" {
+			return 200, map[string]any{"deleted": false, "metadata": nil}, "", nil, nil
+		}
+		if err := os.Remove(file); err != nil && !os.IsNotExist(err) {
+			return 0, nil, "", nil, err
+		}
+		return 200, map[string]any{"deleted": true, "metadata": nil}, "", nil, nil
+	default:
+		return 405, nil, "", nil, appError{405, "Method not allowed"}
+	}
+}
+
+func (s *server) uploadBinaryAsset(r *http.Request, table string, key any) (int, any, string, []byte, error) {
+	schema, err := s.loadSchema(table)
+	if err != nil {
+		return 0, nil, "", nil, err
+	}
+	if err := r.ParseMultipartForm(32 << 20); err != nil {
+		return 0, nil, "", nil, appError{400, "Multipart upload is required."}
+	}
+	generationID := r.FormValue("generationId")
+	if generationID == "" {
+		generationID = defaultGeneration
+	}
+	if err := s.requireGeneration(generationID); err != nil {
+		return 0, nil, "", nil, err
+	}
+	exists, err := s.recordExists(table, generationID, key)
+	if err != nil {
+		return 0, nil, "", nil, err
+	}
+	if !exists {
+		return 0, nil, "", nil, appError{404, "Record not found for binary upload."}
+	}
+	file, header, err := r.FormFile("file")
+	if err != nil {
+		return 0, nil, "", nil, appError{400, "Multipart field 'file' is required."}
+	}
+	defer file.Close()
+	field, err := binaryUploadField(schema, r.FormValue("field"))
+	if err != nil {
+		return 0, nil, "", nil, err
+	}
+	extension := strings.ToLower(strings.TrimPrefix(filepath.Ext(header.Filename), "."))
+	if !safeExtension(extension) {
+		return 0, nil, "", nil, appError{400, "Uploaded file must have a safe extension."}
+	}
+	if allowed := allowedExtensions(field); len(allowed) > 0 && !contains(allowed, extension) {
+		return 0, nil, "", nil, appError{422, "Unsupported file extension: " + extension}
+	}
+	data, err := io.ReadAll(file)
+	if err != nil {
+		return 0, nil, "", nil, err
+	}
+	if max := maxBinarySize(field); max > 0 && int64(len(data)) > max {
+		return 0, nil, "", nil, appError{413, fmt.Sprintf("Uploaded file exceeds %d bytes.", max)}
+	}
+	mimeType := header.Header.Get("Content-Type")
+	if mimeType == "" {
+		mimeType = mime.TypeByExtension("." + extension)
+	}
+	if mimeType == "" {
+		mimeType = "application/octet-stream"
+	}
+	if allowed := allowedMimeTypes(field); len(allowed) > 0 && !contains(allowed, strings.ToLower(mimeType)) {
+		return 0, nil, "", nil, appError{422, "Unsupported MIME type: " + mimeType}
+	}
+	if existing, existingExt, err := s.findBinaryAsset(table, key); err != nil {
+		return 0, nil, "", nil, err
+	} else if existing != "" && existingExt != extension {
+		_ = os.Remove(existing)
+	}
+	dest, err := s.binaryAssetPath(table, key, extension)
+	if err != nil {
+		return 0, nil, "", nil, err
+	}
+	if err := os.MkdirAll(filepath.Dir(dest), 0o755); err != nil {
+		return 0, nil, "", nil, err
+	}
+	if err := os.WriteFile(dest, data, 0o644); err != nil {
+		return 0, nil, "", nil, err
+	}
+	sum := sha256.Sum256(data)
+	metadata := map[string]any{
+		"extension":     extension,
+		"mime_type":     mimeType,
+		"size_bytes":    len(data),
+		"sha256":        hex.EncodeToString(sum[:]),
+		"original_name": header.Filename,
+		"updated_at":    time.Now().UTC().Format(time.RFC3339Nano),
+	}
+	keyString := fmt.Sprint(key)
+	if _, ok := key.(map[string]any); ok {
+		keyString = stableStringify(key)
+	}
+	return 200, map[string]any{
+		"saved":    true,
+		"metadata": metadata,
+		"asset": map[string]any{
+			"table": table, "key": key, "field": field.SystemName,
+			"url": "/api/binaries/" + pathEscape(table) + "/" + pathEscape(keyString),
+		},
+	}, "", nil, nil
 }
 
 func (s *server) dispatchSchemaAPI(r *http.Request, parts []string) (int, any, string, []byte, error) {
@@ -558,7 +715,21 @@ func splitPath(value string) []string {
 	if clean == "" {
 		return nil
 	}
-	return strings.Split(clean, "/")
+	raw := strings.Split(clean, "/")
+	parts := make([]string, 0, len(raw))
+	for _, part := range raw {
+		unescaped, err := url.PathUnescape(part)
+		if err != nil {
+			parts = append(parts, part)
+			continue
+		}
+		parts = append(parts, unescaped)
+	}
+	return parts
+}
+
+func pathEscape(value string) string {
+	return url.PathEscape(value)
 }
 
 func queryDefault(r *http.Request, name string, fallback string) string {
@@ -611,6 +782,147 @@ func (s *server) schemaFile(table string) string {
 
 func (s *server) tableFile(table, generationID string) string {
 	return filepath.Join(s.generationRoot, generationID, table+".yaml")
+}
+
+func stableStringify(value any) string {
+	data, _ := json.Marshal(value)
+	return string(data)
+}
+
+func parseKeyParam(value string) any {
+	if strings.HasPrefix(value, "{") || strings.HasPrefix(value, "[") {
+		var out any
+		if err := json.Unmarshal([]byte(value), &out); err == nil {
+			return out
+		}
+	}
+	return value
+}
+
+func safePrimaryKeyStem(key any) string {
+	if s, ok := key.(string); ok && safePathSegment(s) {
+		return s
+	}
+	serialized := fmt.Sprint(key)
+	if _, ok := key.(string); !ok {
+		serialized = stableStringify(key)
+	}
+	return "key_" + base64URL([]byte(serialized))
+}
+
+func base64URL(data []byte) string {
+	const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
+	var out strings.Builder
+	for i := 0; i < len(data); i += 3 {
+		var n uint32
+		remaining := len(data) - i
+		n |= uint32(data[i]) << 16
+		if remaining > 1 {
+			n |= uint32(data[i+1]) << 8
+		}
+		if remaining > 2 {
+			n |= uint32(data[i+2])
+		}
+		out.WriteByte(alphabet[(n>>18)&63])
+		out.WriteByte(alphabet[(n>>12)&63])
+		if remaining > 1 {
+			out.WriteByte(alphabet[(n>>6)&63])
+		}
+		if remaining > 2 {
+			out.WriteByte(alphabet[n&63])
+		}
+	}
+	return out.String()
+}
+
+func safePathSegment(value string) bool {
+	if value == "" {
+		return false
+	}
+	for _, ch := range value {
+		if (ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z') || (ch >= '0' && ch <= '9') || ch == '_' || ch == '-' {
+			continue
+		}
+		return false
+	}
+	return true
+}
+
+func safeExtension(value string) bool {
+	if value == "" {
+		return false
+	}
+	for _, ch := range value {
+		if (ch >= 'a' && ch <= 'z') || (ch >= '0' && ch <= '9') || ch == '_' || ch == '-' {
+			continue
+		}
+		return false
+	}
+	return true
+}
+
+func (s *server) binaryAssetPath(table string, key any, extension string) (string, error) {
+	if !safePathSegment(table) {
+		return "", appError{400, "Invalid table name."}
+	}
+	extension = strings.ToLower(extension)
+	if !safeExtension(extension) {
+		return "", appError{400, "Invalid extension."}
+	}
+	file := filepath.Join(s.binaryRoot, table, safePrimaryKeyStem(key)+"."+extension)
+	if err := ensurePathInside(s.binaryRoot, filepath.Dir(file)); err != nil {
+		return "", err
+	}
+	return file, nil
+}
+
+func (s *server) findBinaryAsset(table string, key any) (string, string, error) {
+	dir := filepath.Join(s.binaryRoot, table)
+	if err := ensurePathInside(s.binaryRoot, dir); err != nil {
+		return "", "", err
+	}
+	entries, err := os.ReadDir(dir)
+	if os.IsNotExist(err) {
+		return "", "", nil
+	}
+	if err != nil {
+		return "", "", err
+	}
+	prefix := safePrimaryKeyStem(key) + "."
+	for _, entry := range entries {
+		if entry.IsDir() || !strings.HasPrefix(entry.Name(), prefix) {
+			continue
+		}
+		ext := strings.TrimPrefix(filepath.Ext(entry.Name()), ".")
+		file := filepath.Join(dir, entry.Name())
+		if err := ensurePathInside(s.binaryRoot, file); err != nil {
+			return "", "", err
+		}
+		return file, ext, nil
+	}
+	return "", "", nil
+}
+
+func ensurePathInside(root, target string) error {
+	if err := os.MkdirAll(root, 0o755); err != nil {
+		return err
+	}
+	absRoot, err := filepath.Abs(root)
+	if err != nil {
+		return err
+	}
+	absTarget, err := filepath.Abs(target)
+	if err != nil {
+		return err
+	}
+	rel, err := filepath.Rel(absRoot, absTarget)
+	if err != nil {
+		return err
+	}
+	if rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) || filepath.IsAbs(rel) {
+		return appError{422, "Resolved path is outside the allowed root."}
+	}
+	return nil
 }
 
 func (s *server) generationPath(generationID string) string {
@@ -964,6 +1276,110 @@ func normalizeComparable(value any) string {
 	return string(data)
 }
 
+func binaryFields(item schema) []field {
+	out := []field{}
+	for _, f := range item.Fields {
+		if f.Type == "binary_file" {
+			out = append(out, f)
+		}
+	}
+	return out
+}
+
+func binaryUploadField(item schema, fieldName string) (field, error) {
+	fields := binaryFields(item)
+	if fieldName == "" && len(fields) == 1 {
+		return fields[0], nil
+	}
+	for _, f := range fields {
+		if f.SystemName == fieldName {
+			return f, nil
+		}
+	}
+	return field{}, appError{422, "Binary upload field is not declared in schema."}
+}
+
+func allowedExtensions(f field) []string {
+	return stringSlice(f.Binary["allowed_extensions"])
+}
+
+func allowedMimeTypes(f field) []string {
+	return stringSlice(f.Binary["allowed_mime_types"])
+}
+
+func maxBinarySize(f field) int64 {
+	value, ok := f.Binary["max_size_bytes"]
+	if !ok || value == nil {
+		return 0
+	}
+	switch v := value.(type) {
+	case int:
+		return int64(v)
+	case int64:
+		return v
+	case float64:
+		return int64(v)
+	case string:
+		n, _ := strconv.ParseInt(v, 10, 64)
+		return n
+	default:
+		return 0
+	}
+}
+
+func stringSlice(value any) []string {
+	items, ok := value.([]any)
+	if !ok {
+		if stringsValue, ok := value.([]string); ok {
+			out := make([]string, 0, len(stringsValue))
+			for _, item := range stringsValue {
+				out = append(out, strings.ToLower(item))
+			}
+			return out
+		}
+		return nil
+	}
+	out := make([]string, 0, len(items))
+	for _, item := range items {
+		out = append(out, strings.ToLower(fmt.Sprint(item)))
+	}
+	return out
+}
+
+func binaryMetadataMap(value any) map[string]any {
+	value = normalizeReferenceValue(value)
+	if out, ok := value.(map[string]any); ok {
+		return out
+	}
+	if out, ok := value.(map[any]any); ok {
+		next := map[string]any{}
+		for k, v := range out {
+			next[fmt.Sprint(k)] = v
+		}
+		return next
+	}
+	return nil
+}
+
+func (s *server) recordExists(table, generationID string, key any) (bool, error) {
+	item, err := s.loadSchema(table)
+	if err != nil {
+		return false, err
+	}
+	records, err := s.loadRecords(table, generationID)
+	if err != nil {
+		return false, err
+	}
+	comparable := normalizeComparable(key)
+	for _, record := range records {
+		row := recordToRow(record, item)
+		if normalizeComparable(keyFromRow(row, item)) == comparable {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
 func (s *server) validateRows(table, generationID string, rows []map[string]any, mode string) ([]map[string]any, error) {
 	schema, err := s.loadSchema(table)
 	if err != nil {
@@ -1003,6 +1419,42 @@ func (s *server) validateRows(table, generationID string, rows []map[string]any,
 			case "constant":
 				if len(f.Constants) > 0 && !contains(f.Constants, fmt.Sprint(value)) {
 					diagnostics = append(diagnostics, diagnostic("error", table, generationID, index, f.SystemName, f.BusinessName+" must be one of: "+strings.Join(f.Constants, ", ")+"."))
+				}
+			case "binary_file":
+				metadata := binaryMetadataMap(value)
+				if metadata == nil {
+					diagnostics = append(diagnostics, diagnostic("error", table, generationID, index, f.SystemName, f.BusinessName+" must be uploaded."))
+					continue
+				}
+				extension := strings.ToLower(stringValue(metadata["extension"], ""))
+				if extension == "" {
+					diagnostics = append(diagnostics, diagnostic("error", table, generationID, index, f.SystemName, f.BusinessName+" metadata is missing extension."))
+				} else if allowed := allowedExtensions(f); len(allowed) > 0 && !contains(allowed, extension) {
+					diagnostics = append(diagnostics, diagnostic("error", table, generationID, index, f.SystemName, f.BusinessName+" must use one of: "+strings.Join(allowed, ", ")+"."))
+				}
+				if allowed := allowedMimeTypes(f); len(allowed) > 0 {
+					mimeType := strings.ToLower(stringValue(metadata["mime_type"], ""))
+					if mimeType != "" && !contains(allowed, mimeType) {
+						diagnostics = append(diagnostics, diagnostic("error", table, generationID, index, f.SystemName, f.BusinessName+" MIME type is not allowed: "+mimeType+"."))
+					}
+				}
+				if max := maxBinarySize(f); max > 0 {
+					if size, ok := toInt(metadata["size_bytes"]); ok && int64(size) > max {
+						diagnostics = append(diagnostics, diagnostic("error", table, generationID, index, f.SystemName, fmt.Sprintf("%s exceeds %d bytes.", f.BusinessName, max)))
+					}
+				}
+				if extension != "" {
+					file, err := s.binaryAssetPath(table, keyFromRow(row, schema), extension)
+					if err != nil {
+						return nil, err
+					}
+					if _, err := os.Stat(file); err != nil {
+						if os.IsNotExist(err) {
+							diagnostics = append(diagnostics, diagnostic("error", table, generationID, index, f.SystemName, f.BusinessName+" file is missing from masterdata/binaries."))
+						} else {
+							return nil, err
+						}
+					}
 				}
 			}
 			if f.Type == "external_reference" {

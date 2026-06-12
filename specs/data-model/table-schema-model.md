@@ -24,12 +24,15 @@ Each table schema defines fields, primary keys, export behavior, formula fields,
 | business_name | string | yes | Human-facing business name, such as Japanese display name. |
 | primary_key | array | yes | Field names that form the table primary key. |
 | export | boolean | yes | Whether this table is included in export output by default. |
+| ui | object | no | Editor-facing presentation metadata. It does not affect canonical storage or export by itself. |
+| ui.table_list_visibility | enum | no | `visible`, `plugin_only`, or `hidden`. Defaults to `visible`. |
+| ui.preferred_plugin | string | no | Optional plugin ID to suggest when `ui.table_list_visibility` is `plugin_only`. |
 | dependent_tables | array | no | Child table definitions that may be embedded under parent records. |
 | comment | string | no | Human-facing schema note. |
 | fields | array | yes | Schema field definitions. |
 | field.system_name | string | yes | ASCII-oriented system field name. |
 | field.business_name | string | yes | Human-facing business field name, such as Japanese display name. |
-| field.type | enum | yes | Scalar type, constant, external reference, or formula result type. |
+| field.type | enum | yes | Scalar type, constant, external reference, binary file metadata, or formula result type. |
 | field.required | boolean | yes | Whether the field is required in YAML data. |
 | field.export | boolean | yes | Whether this field is included in export output. |
 | field.default_value | typed value | no | Value used when a new field value is materialized or when existing data omits the field. |
@@ -37,6 +40,10 @@ Each table schema defines fields, primary keys, export behavior, formula fields,
 | field.readonly | boolean | derived | Formula fields are always read-only. |
 | field.reference | object | no | External reference definition pointing to a target table's primary key. |
 | field.constants | array | no | Allowed values for constant fields. |
+| field.binary | object | no | Binary upload constraints when `field.type` is `binary_file`. |
+| field.binary.allowed_extensions | array | no | Allowed lowercase extensions without leading dots. |
+| field.binary.allowed_mime_types | array | no | Allowed MIME types when the host can detect them. |
+| field.binary.max_size_bytes | integer | no | Maximum accepted upload size. |
 | field.comment | string | no | Human-facing field note. |
 
 ## Minimal Schema YAML
@@ -49,6 +56,8 @@ business_name: 組織
 primary_key:
   - org_id
 export: true
+ui:
+  table_list_visibility: visible
 dependent_tables:
   - table: user
     foreign_key:
@@ -115,6 +124,18 @@ fields:
 - A formula field may be exported or non-exported.
 - Primary key fields are exported unless a specific backend has a documented alternate key mapping.
 
+## Editor Visibility
+
+`ui.table_list_visibility` controls whether the ordinary table editing workspace lists the table as a direct navigation item. It does not change validation, export, file layout, reference resolution, or plugin access.
+
+| Value | Behavior |
+| --- | --- |
+| `visible` | Default. Show the table in the ordinary table list and allow grid editing subject to schema validity and permissions. |
+| `plugin_only` | Hide the table from the ordinary table list because normal users are expected to edit it through one or more editor plugins. The table remains loadable by plugin scopes, validation, export, references, schema editing, diagnostics, and developer/admin repair paths. |
+| `hidden` | Hide the table from ordinary data navigation. Use for implementation-detail tables that should not be presented as normal edit targets. The table still remains canonical data and must be reachable by validation and explicit tooling. |
+
+When `plugin_only` is used, `ui.preferred_plugin` may name the plugin that should be presented as the primary editing destination for this table. The named plugin must exist in `masterdata/editor_plugins.yaml` before the host can use it as a navigation hint. If the plugin is missing or invalid, the host should surface a configuration diagnostic rather than silently making the table uneditable.
+
 ## External References
 
 - External reference fields define a directed dependency from the referencing table to the referenced table.
@@ -125,6 +146,20 @@ fields:
 - Reference candidate APIs return primary key and name pairs for a target table.
 - The schema graph formed by external references must be acyclic.
 - A schema definition that would introduce a foreign key reference cycle is invalid.
+
+## Binary File Fields
+
+- A `binary_file` field declares that the record may have one uploaded file stored through [Binary asset model](binary-asset-model.md).
+- The field stores metadata such as extension, MIME type, file size, hash, and original filename; it does not store file bytes.
+- The default physical path is `masterdata/binaries/<table>/<primary-key>.<extension>`.
+- The first implementation supports at most one `binary_file` field per table because the default path does not include field name.
+- Required `binary_file` fields require a matching stored binary file and valid metadata.
+- Optional `binary_file` fields may be empty.
+- `field.binary.allowed_extensions` constrains accepted upload extensions.
+- `field.binary.allowed_mime_types` constrains detected MIME types when detection is available.
+- `field.binary.max_size_bytes` constrains upload size.
+- Uploading, replacing, or deleting file bytes uses host binary asset APIs rather than ordinary row commit operations.
+- The ordinary row commit may store metadata returned by the upload API.
 
 ## Schema Editing Representation
 
@@ -160,10 +195,14 @@ fields:
 - The evaluator must expose only the current record's non-formula field values as formula inputs.
 - Formula expressions must not perform table lookups.
 - Field `default_value` values must not depend on external state or call host APIs.
+- Binary file fields must not define non-empty `default_value` values because uploaded file bytes cannot be synthesized from schema.
 - Formula expressions must not mutate data.
 - Formula expressions must not call host APIs, access global objects, import modules, or perform I/O.
 - Formula evaluation errors are validation errors on the formula field.
 - Export adapters consume the normalized effective record and then filter by `field.export`.
+- Export adapters that support binary assets may copy files from [Binary asset model](binary-asset-model.md); export adapters that do not support binary assets should export only metadata or omit the field according to format rules.
+- `ui.table_list_visibility` must not affect export eligibility; use table `export` for export behavior.
+- A `plugin_only` table should have at least one valid editor plugin entry point that can edit or inspect it, or the UI must expose a configuration diagnostic.
 
 ## Uses Common Details
 
@@ -173,6 +212,7 @@ fields:
 
 - [Generic master data model](generic-master-data-model.md)
 - [Canonical YAML file layout](canonical-yaml-file-layout.md)
+- [Binary asset model](binary-asset-model.md)
 
 ## Writes
 
@@ -188,4 +228,4 @@ fields:
 
 ## Native-Language Summary
 
-テーブルスキーマはフィールド、主キー、export対象フラグ、数式、外部参照を定義する。数式はJessie互換のexpression-only subsetを使う方針。数式フィールドは同一レコード内の非数式フィールドだけを入力にし、編集UIではリードオンリー。外部キー参照グラフは循環を禁止する。
+テーブルスキーマはフィールド、主キー、export対象フラグ、数式、外部参照を定義する。`ui.table_list_visibility` により、通常のテーブル一覧に表示するか、プラグイン経由を主導線にするかも指定できる。数式はJessie互換のexpression-only subsetを使う方針。数式フィールドは同一レコード内の非数式フィールドだけを入力にし、編集UIではリードオンリー。外部キー参照グラフは循環を禁止する。

@@ -29,6 +29,7 @@ The current Hono implementation is a development and prototype host. Packaged we
 - Treat a missing table YAML file in the active generation as an empty table.
 - Create a missing table YAML file on first successful commit.
 - Provide APIs for table data, commit-mode row mutations, validation diagnostics, external reference lookup, and file save.
+- Provide APIs for binary asset upload, preview/download, metadata lookup, and deletion.
 - Provide APIs for editor plugin discovery, plugin asset loading, scoped plugin data, and plugin change-set commit.
 - Provide APIs for SPA page data: generation list, generation metadata, schema list, schema detail, and schema validation.
 - Provide APIs for optional AI assistant runs, provider profile discovery, provider health checks, and agent tool execution when AI features are enabled.
@@ -63,6 +64,7 @@ The current Hono implementation is a development and prototype host. Packaged we
 - Later slice: editor plugin discovery API.
 - Later slice: editor plugin scoped data API.
 - Later slice: editor plugin multi-table commit API.
+- Later slice: binary asset upload API.
 
 ## HTTP Routes
 
@@ -75,6 +77,9 @@ The current Hono implementation is a development and prototype host. Packaged we
 | POST | `/api/tables/:table/generations/:generationId/records/commit` | Apply pending row operations from the frontend commit mode. Request body supplies operations and optional `force: true`. |
 | POST | `/api/tables/:table/generations/:generationId/validate` | Validate one table's records in one generation. |
 | GET | `/api/tables/:table/references` | Return reference candidates for a target table as primary key and display name pairs. Supports generation-aware lookup parameters in later slices. |
+| GET | `/api/binaries/:table/:key` | Later slice: download or preview a binary asset by table and encoded primary key. |
+| POST | `/api/binaries/:table/:key` | Later slice: upload or replace a binary asset for a table record. Uses multipart file upload. |
+| DELETE | `/api/binaries/:table/:key` | Later slice: delete a binary asset for a table record. |
 | GET | `/api/schemas` | Later slice: list editable schemas for schema editing page. |
 | GET | `/api/schemas/:table` | Later slice: load one editable schema detail. |
 | PUT | `/api/schemas` | Later slice: save schema list metadata edits. |
@@ -90,8 +95,8 @@ The current Hono implementation is a development and prototype host. Packaged we
 | POST | `/api/generations/delete` | Future slice: delete one or more selected generation folders after UI confirmation. |
 | POST | `/api/generations/duplicate` | Future slice: copy one or more selected generation folders into new generations with automatic destination metadata. |
 | POST | `/api/generations/analyze` | Future slice: return read-only counts, diagnostics, and merge impact for selected generations. |
-| GET | `/api/editor-plugins` | Future slice: list configured editor plugins and their declared target tables. |
-| GET | `/api/editor-plugins/:pluginId/assets/*` | Future slice: serve a plugin's declared HTML and static assets from the workspace plugin root. |
+| GET | `/api/editor-plugins` | Future slice: list configured editor plugins, entry points, declared target tables, and table visibility diagnostics. |
+| GET | `/api/editor-plugins/:pluginId/assets/*` | Future slice: serve a plugin's declared built HTML and static assets from the resolved runtime plugin asset tree. |
 | POST | `/api/editor-plugins/:pluginId/context` | Future slice: build scoped plugin data for the active generation, selected entry scope, and declared target table filters. |
 | POST | `/api/editor-plugins/:pluginId/changes/validate` | Future slice: validate a plugin change set without writing YAML. |
 | POST | `/api/editor-plugins/:pluginId/changes/commit` | Future slice: commit a validated plugin change set for one or more writable target tables. |
@@ -104,13 +109,19 @@ The first runnable slice uses `generationId = 0000_initial` for record load, com
 
 AI routes are disabled unless [AI provider configuration model](../data-model/ai-provider-configuration-model.md) enables AI features and at least one usable provider profile is configured. AI assistant runs may use OpenAI-compatible hosted APIs or local providers such as Ollama and LM Studio through [AI assistant service](../component/ai-assistant-service.md). AI tool execution follows [Agent tool contract](../component/agent-tool-contract.md) and must not expose raw filesystem, shell, unrestricted network, or unscoped application internals.
 
-Editor plugin APIs are disabled unless plugin declarations are present. The plugin discovery route returns metadata from [Editor plugin model](../data-model/editor-plugin-model.md) declarations, but it must not expose filesystem paths outside the declared plugin asset root.
+Editor plugin APIs are disabled unless plugin declarations are present. The plugin discovery route returns metadata from [Editor plugin model](../data-model/editor-plugin-model.md) declarations, normally loaded from `masterdata/editor_plugins.yaml`, including normalized entry points for sidebar, table toolbar, record, and group placements. It must not expose filesystem paths outside the declared built plugin asset root under `masterdata/plugins`. Source directories and build metadata may be returned only as developer diagnostics; asset routes must not serve source trees, lockfiles, package manifests, or dependency folders unless they are intentionally part of the built output.
+
+Discovery should also report schema UI visibility metadata relevant to navigation. Tables with `ui.table_list_visibility: plugin_only` or `hidden` are omitted from ordinary table navigation, but the server must still include them in plugin scope resolution and diagnostics when plugin declarations reference them.
 
 The plugin context route accepts `pluginId`, `activeGenerationId`, `mode`, and an entry scope. For `record` scope, it validates that the selected primary record belongs to the declared primary table. For `group` scope, it validates the declared grouping table and field, then resolves the selected group value to matching records. For `table` scope, it requires no selected row and returns the full declared table scope. In every mode, the route resolves declared `equals` filters and returns only records from declared target tables. Returned rows include the same generation provenance and readonly metadata used by generation-aware table views.
 
 Plugin validation and commit routes accept canonical change sets grouped by table. They reject unknown tables, undeclared writes, writes to readonly previous-generation records, path traversal attempts, and record values that cannot be normalized under the table schema. Validation uses the schema validation engine and returns diagnostics without writing files. Commit follows the same validation-error behavior as ordinary table save: without `force`, validation errors block writes; with explicit `force: true`, the host may save and return diagnostics when project save behavior allows it.
 
 Multi-table plugin commits should be atomic from the user's perspective. If the implementation cannot atomically update every affected table file, the route must either reject multi-table commits up front or return a recovery diagnostic that identifies which table writes completed and force the frontend to reload those tables.
+
+Binary asset routes operate under `masterdata/binaries` as specified by [Binary asset model](../data-model/binary-asset-model.md). Upload requests validate table existence, record key existence, editable generation context when relevant, schema `binary_file` constraints, extension, MIME type when detectable, file size, and path safety. The upload response returns normalized metadata and a preview/download URL; clients store returned metadata in the matching `binary_file` field through ordinary table or plugin change flows. Delete requests remove the stored file and return metadata suitable for clearing the field. These routes never accept caller-supplied filesystem paths.
+
+Editor plugin host APIs for binary upload call the same binary asset service as table editing. Plugin calls are additionally scoped to records and tables included in the plugin context.
 
 The later `GET /api/tables/:table/generation-view` route accepts required query parameters `activeGenerationId` and `mode`. `mode=active_only` returns only records from the active generation. `mode=include_previous` returns records from output-enabled generations older than or equal to the active generation, plus the active generation even when its own `output` flag is false. The route never returns records from generations newer than the active generation. The server derives `orderedGenerationIds` from generation metadata; clients do not pass arbitrary previous generation IDs for this view. Response rows are editing rows with generation metadata added to the data: `sourceGenerationId`, `sourceGenerationLabel`, `isActiveGeneration`, `isReadOnly`, `isOverridden`, and optional `overriddenByGenerationId`. The route is read-only and does not modify YAML files.
 
@@ -201,6 +212,7 @@ The future `POST /api/generations/analyze` route accepts explicit selected `gene
 - [HTML editor plugin runtime](../component/html-editor-plugin-runtime.md)
 - [Schema validation engine](../component/schema-validation-engine.md)
 - [Generic master data model](../data-model/generic-master-data-model.md)
+- [Binary asset model](../data-model/binary-asset-model.md)
 - [AI provider configuration model](../data-model/ai-provider-configuration-model.md)
 - [AI assistant service](../component/ai-assistant-service.md)
 - [Agent tool contract](../component/agent-tool-contract.md)
@@ -209,6 +221,7 @@ The future `POST /api/generations/analyze` route accepts explicit selected `gene
 
 - Schema configuration files.
 - YAML table records under `masterdata/generations`.
+- Binary files under `masterdata/binaries`.
 - Embedded dependent table records inside parent table YAML files.
 - Generation configuration from `masterdata/generations/0000_initial/_config.yaml`.
 - Later generation-aware table view: selected generation configuration and previous output-enabled table YAML files up to the active generation.

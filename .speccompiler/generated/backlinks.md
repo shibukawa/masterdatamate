@@ -75,6 +75,7 @@
 - relates_to from AI assistant service
 - links_to from Shared web editing frontend
 - depends_on from Shared web editing frontend
+- relates_to from Binary asset model
 - relates_to from Editor plugin model
 - relates_to from Product overview
 - depends_on from Web service host
@@ -105,6 +106,7 @@
 - uses_component from Generation merge and export flow
 - relates_to from Generation merge and export flow
 - uses_component from Generation persistent merge flow
+- relates_to from Binary asset model
 - relates_to from Canonical YAML file layout
 - links_to from Editor plugin model
 - relates_to from Generic master data model
@@ -236,6 +238,22 @@
 - uses_component from In-app AI assistant panel
 - relates_to from In-app AI assistant panel
 
+## Binary asset model (binary-asset-model)
+
+- links_to from HTML editor plugin runtime
+- depends_on from HTML editor plugin runtime
+- links_to from Schema validation engine
+- depends_on from Schema validation engine
+- depends_on from Shared web editing frontend
+- links_to from Canonical YAML file layout
+- reads from Canonical YAML file layout
+- links_to from Table schema model
+- links_to from Table schema model
+- reads from Table schema model
+- links_to from Web service host
+- depends_on from Web service host
+- relates_to from Table editing workspace
+
 ## Canonical YAML file layout (canonical-yaml-file-layout)
 
 - depends_on from Schema validation engine
@@ -248,6 +266,7 @@
 - relates_to from Generation merge and export flow
 - uses_component from Generation persistent merge flow
 - relates_to from Generation persistent merge flow
+- reads from Binary asset model
 - depends_on from Export settings model
 - reads from Generation model
 - reads from Generic master data model
@@ -263,6 +282,7 @@
 
 ## Editor plugin model (editor-plugin-model)
 
+- links_to from HTML editor plugin runtime
 - links_to from HTML editor plugin runtime
 - depends_on from HTML editor plugin runtime
 - links_to from Shared web editing frontend
@@ -308,6 +328,7 @@
 - relates_to from Export execution flow
 - uses_component from Generation merge and export flow
 - relates_to from Generation merge and export flow
+- reads from Binary asset model
 - reads from Canonical YAML file layout
 - reads from Editor plugin model
 - reads from Table schema model
@@ -323,6 +344,7 @@
 - depends_on from Schema validation engine
 - uses_component from Export execution flow
 - relates_to from Export execution flow
+- reads from Binary asset model
 - reads from Editor plugin model
 - reads from Generic master data model
 - relates_to from Generic master data model
@@ -399,6 +421,7 @@
 - relates_to from Generation duplication flow
 - uses_component from Generation persistent merge flow
 - relates_to from Generation persistent merge flow
+- relates_to from Binary asset model
 - relates_to from Canonical YAML file layout
 - relates_to from Editor plugin model
 - relates_to from Generation model
@@ -484,6 +507,7 @@
 - depends_on from HTML editor plugin runtime
 - relates_to from Schema validation engine
 - relates_to from Shared web editing frontend
+- relates_to from Binary asset model
 - links_to from Editor plugin model
 - relates_to from Editor plugin model
 - relates_to from Table schema model

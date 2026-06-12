@@ -1,0 +1,9 @@
+maze_map:
+  - key: maze_001
+    name: Training Maze
+    data:
+      name: Training Maze
+      width: 10
+      height: 10
+      comment: First 10x10 sample map.
+

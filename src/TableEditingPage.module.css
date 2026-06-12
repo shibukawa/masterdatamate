@@ -87,6 +87,20 @@
   overflow: hidden;
 }
 
+.pluginFrameWrap {
+  background: #f6f8fb;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.pluginFrame {
+  background: #ffffff;
+  border: 0;
+  display: block;
+  height: 100%;
+  width: 100%;
+}
+
 .workspaceStack {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);

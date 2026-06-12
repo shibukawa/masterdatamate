@@ -1,0 +1,201 @@
+maze_cell:
+  - key: {map_id: maze_001, x: 0, y: 0}
+    data: {terrain: wall}
+  - key: {map_id: maze_001, x: 1, y: 0}
+    data: {terrain: wall}
+  - key: {map_id: maze_001, x: 2, y: 0}
+    data: {terrain: wall}
+  - key: {map_id: maze_001, x: 3, y: 0}
+    data: {terrain: wall}
+  - key: {map_id: maze_001, x: 4, y: 0}
+    data: {terrain: wall}
+  - key: {map_id: maze_001, x: 5, y: 0}
+    data: {terrain: wall}
+  - key: {map_id: maze_001, x: 6, y: 0}
+    data: {terrain: wall}
+  - key: {map_id: maze_001, x: 7, y: 0}
+    data: {terrain: wall}
+  - key: {map_id: maze_001, x: 8, y: 0}
+    data: {terrain: wall}
+  - key: {map_id: maze_001, x: 9, y: 0}
+    data: {terrain: wall}
+  - key: {map_id: maze_001, x: 0, y: 1}
+    data: {terrain: wall}
+  - key: {map_id: maze_001, x: 1, y: 1}
+    data: {terrain: start}
+  - key: {map_id: maze_001, x: 2, y: 1}
+    data: {terrain: path}
+  - key: {map_id: maze_001, x: 3, y: 1}
+    data: {terrain: path}
+  - key: {map_id: maze_001, x: 4, y: 1}
+    data: {terrain: path}
+  - key: {map_id: maze_001, x: 5, y: 1}
+    data: {terrain: path}
+  - key: {map_id: maze_001, x: 6, y: 1}
+    data: {terrain: path}
+  - key: {map_id: maze_001, x: 7, y: 1}
+    data: {terrain: path}
+  - key: {map_id: maze_001, x: 8, y: 1}
+    data: {terrain: path}
+  - key: {map_id: maze_001, x: 9, y: 1}
+    data: {terrain: wall}
+  - key: {map_id: maze_001, x: 0, y: 2}
+    data: {terrain: wall}
+  - key: {map_id: maze_001, x: 1, y: 2}
+    data: {terrain: path}
+  - key: {map_id: maze_001, x: 2, y: 2}
+    data: {terrain: path}
+  - key: {map_id: maze_001, x: 3, y: 2}
+    data: {terrain: path}
+  - key: {map_id: maze_001, x: 4, y: 2}
+    data: {terrain: path}
+  - key: {map_id: maze_001, x: 5, y: 2}
+    data: {terrain: path, enemy_id: slime}
+  - key: {map_id: maze_001, x: 6, y: 2}
+    data: {terrain: path}
+  - key: {map_id: maze_001, x: 7, y: 2}
+    data: {terrain: path}
+  - key: {map_id: maze_001, x: 8, y: 2}
+    data: {terrain: path}
+  - key: {map_id: maze_001, x: 9, y: 2}
+    data: {terrain: wall}
+  - key: {map_id: maze_001, x: 0, y: 3}
+    data: {terrain: wall}
+  - key: {map_id: maze_001, x: 1, y: 3}
+    data: {terrain: path}
+  - key: {map_id: maze_001, x: 2, y: 3}
+    data: {terrain: path}
+  - key: {map_id: maze_001, x: 3, y: 3}
+    data: {terrain: path}
+  - key: {map_id: maze_001, x: 4, y: 3}
+    data: {terrain: path}
+  - key: {map_id: maze_001, x: 5, y: 3}
+    data: {terrain: path}
+  - key: {map_id: maze_001, x: 6, y: 3}
+    data: {terrain: path}
+  - key: {map_id: maze_001, x: 7, y: 3}
+    data: {terrain: path}
+  - key: {map_id: maze_001, x: 8, y: 3}
+    data: {terrain: path}
+  - key: {map_id: maze_001, x: 9, y: 3}
+    data: {terrain: wall}
+  - key: {map_id: maze_001, x: 0, y: 4}
+    data: {terrain: wall}
+  - key: {map_id: maze_001, x: 1, y: 4}
+    data: {terrain: path}
+  - key: {map_id: maze_001, x: 2, y: 4}
+    data: {terrain: path}
+  - key: {map_id: maze_001, x: 3, y: 4}
+    data: {terrain: path, enemy_id: bat}
+  - key: {map_id: maze_001, x: 4, y: 4}
+    data: {terrain: path}
+  - key: {map_id: maze_001, x: 5, y: 4}
+    data: {terrain: path}
+  - key: {map_id: maze_001, x: 6, y: 4}
+    data: {terrain: path}
+  - key: {map_id: maze_001, x: 7, y: 4}
+    data: {terrain: path}
+  - key: {map_id: maze_001, x: 8, y: 4}
+    data: {terrain: path}
+  - key: {map_id: maze_001, x: 9, y: 4}
+    data: {terrain: wall}
+  - key: {map_id: maze_001, x: 0, y: 5}
+    data: {terrain: wall}
+  - key: {map_id: maze_001, x: 1, y: 5}
+    data: {terrain: path}
+  - key: {map_id: maze_001, x: 2, y: 5}
+    data: {terrain: path}
+  - key: {map_id: maze_001, x: 3, y: 5}
+    data: {terrain: path}
+  - key: {map_id: maze_001, x: 4, y: 5}
+    data: {terrain: path}
+  - key: {map_id: maze_001, x: 5, y: 5}
+    data: {terrain: path}
+  - key: {map_id: maze_001, x: 6, y: 5}
+    data: {terrain: path}
+  - key: {map_id: maze_001, x: 7, y: 5}
+    data: {terrain: path}
+  - key: {map_id: maze_001, x: 8, y: 5}
+    data: {terrain: path}
+  - key: {map_id: maze_001, x: 9, y: 5}
+    data: {terrain: wall}
+  - key: {map_id: maze_001, x: 0, y: 6}
+    data: {terrain: wall}
+  - key: {map_id: maze_001, x: 1, y: 6}
+    data: {terrain: path}
+  - key: {map_id: maze_001, x: 2, y: 6}
+    data: {terrain: path}
+  - key: {map_id: maze_001, x: 3, y: 6}
+    data: {terrain: path}
+  - key: {map_id: maze_001, x: 4, y: 6}
+    data: {terrain: path}
+  - key: {map_id: maze_001, x: 5, y: 6}
+    data: {terrain: path}
+  - key: {map_id: maze_001, x: 6, y: 6}
+    data: {terrain: path}
+  - key: {map_id: maze_001, x: 7, y: 6}
+    data: {terrain: path}
+  - key: {map_id: maze_001, x: 8, y: 6}
+    data: {terrain: path}
+  - key: {map_id: maze_001, x: 9, y: 6}
+    data: {terrain: wall}
+  - key: {map_id: maze_001, x: 0, y: 7}
+    data: {terrain: wall}
+  - key: {map_id: maze_001, x: 1, y: 7}
+    data: {terrain: path}
+  - key: {map_id: maze_001, x: 2, y: 7}
+    data: {terrain: path}
+  - key: {map_id: maze_001, x: 3, y: 7}
+    data: {terrain: path}
+  - key: {map_id: maze_001, x: 4, y: 7}
+    data: {terrain: path}
+  - key: {map_id: maze_001, x: 5, y: 7}
+    data: {terrain: path}
+  - key: {map_id: maze_001, x: 6, y: 7}
+    data: {terrain: path, enemy_id: golem}
+  - key: {map_id: maze_001, x: 7, y: 7}
+    data: {terrain: path}
+  - key: {map_id: maze_001, x: 8, y: 7}
+    data: {terrain: path}
+  - key: {map_id: maze_001, x: 9, y: 7}
+    data: {terrain: wall}
+  - key: {map_id: maze_001, x: 0, y: 8}
+    data: {terrain: wall}
+  - key: {map_id: maze_001, x: 1, y: 8}
+    data: {terrain: path}
+  - key: {map_id: maze_001, x: 2, y: 8}
+    data: {terrain: path}
+  - key: {map_id: maze_001, x: 3, y: 8}
+    data: {terrain: path}
+  - key: {map_id: maze_001, x: 4, y: 8}
+    data: {terrain: path}
+  - key: {map_id: maze_001, x: 5, y: 8}
+    data: {terrain: path}
+  - key: {map_id: maze_001, x: 6, y: 8}
+    data: {terrain: path}
+  - key: {map_id: maze_001, x: 7, y: 8}
+    data: {terrain: path}
+  - key: {map_id: maze_001, x: 8, y: 8}
+    data: {terrain: goal}
+  - key: {map_id: maze_001, x: 9, y: 8}
+    data: {terrain: wall}
+  - key: {map_id: maze_001, x: 0, y: 9}
+    data: {terrain: wall}
+  - key: {map_id: maze_001, x: 1, y: 9}
+    data: {terrain: wall}
+  - key: {map_id: maze_001, x: 2, y: 9}
+    data: {terrain: wall}
+  - key: {map_id: maze_001, x: 3, y: 9}
+    data: {terrain: wall}
+  - key: {map_id: maze_001, x: 4, y: 9}
+    data: {terrain: wall}
+  - key: {map_id: maze_001, x: 5, y: 9}
+    data: {terrain: wall}
+  - key: {map_id: maze_001, x: 6, y: 9}
+    data: {terrain: wall}
+  - key: {map_id: maze_001, x: 7, y: 9}
+    data: {terrain: wall}
+  - key: {map_id: maze_001, x: 8, y: 9}
+    data: {terrain: wall}
+  - key: {map_id: maze_001, x: 9, y: 9}
+    data: {terrain: wall}

@@ -13,7 +13,9 @@ facts:
 
 ## Summary
 
-Canonical master data lives under `masterdata/`. Schemas live under `masterdata/schema`, generation data lives under `masterdata/generations`, project-level export defaults may live in `masterdata/export_settings.yaml`, and project-defined template generation settings may live in `masterdata/generate_definitions.yaml` plus `masterdata/generate_templates/`. The default data file pattern is one YAML file per table, but a parent table file may also embed records for dependent child tables.
+Canonical master data lives under `masterdata/`. Schemas live under `masterdata/schema`, generation data lives under `masterdata/generations`, editor plugin declarations and assets live under `masterdata/editor_plugins.yaml` and `masterdata/plugins`, project-level export defaults may live in `masterdata/export_settings.yaml`, and project-defined template generation settings may live in `masterdata/generate_definitions.yaml` plus `masterdata/generate_templates/`. The default data file pattern is one YAML file per table, but a parent table file may also embed records for dependent child tables.
+
+Binary assets attached to records live under `masterdata/binaries` and are specified by [Binary asset model](binary-asset-model.md).
 
 ## Fields
 
@@ -21,9 +23,12 @@ Canonical master data lives under `masterdata/`. Schemas live under `masterdata/
 | --- | --- | --- | --- |
 | schema_root | path | yes | `masterdata/schema`. Contains table schema definitions. |
 | generations_root | path | yes | `masterdata/generations`. Contains generation datasets. |
+| editor_plugins_file | path | no | `masterdata/editor_plugins.yaml`. Contains project-local custom editor plugin declarations. |
+| editor_plugins_root | path | no | `masterdata/plugins`. Contains plugin source projects and built plugin runtime assets. |
 | export_settings_file | path | no | `masterdata/export_settings.yaml`. Contains project-level defaults for export formats. |
 | generate_definitions_file | path | no | `masterdata/generate_definitions.yaml`. Contains project-level Pongo2 template generation definitions. |
 | generate_templates_root | path | no | `masterdata/generate_templates`. Contains external Pongo2 template files referenced by generation definitions. |
+| binaries_root | path | no | `masterdata/binaries`. Contains uploaded binary files attached to records. |
 | generation_id | string | yes | Generation folder or generation key under `masterdata/generations`. |
 | generation_metadata | object | yes | Generation index, output flag, path name, description, and derived folder naming settings. |
 | table_file | path | yes | YAML file named after the primary table, such as `org.yaml`. |
@@ -50,9 +55,19 @@ masterdata/
   generate_templates/
     go/
       error_constants.go.pongo2
+  binaries/
+    item/
+      potion_small.png
   schema/
     org.yaml
     user.yaml
+  editor_plugins.yaml
+  plugins/
+    map-editor/
+      package.json
+      src/
+      dist/
+        index.html
   generations/
     0000_initial/
       _config.yaml
@@ -66,9 +81,11 @@ The first runnable slice uses the fixed `masterdata/generations/0000_initial` fo
 
 The canonical data root is always the `masterdata/` directory under a resolved workspace root. Runtime discovery must not derive the data root from the native binary path, bundled frontend asset path, npm wrapper path, or `dist-native/` output directory.
 
-When the user does not pass an explicit workspace, the host starts at the process current working directory and walks toward the filesystem root. Each directory is checked for project root markers such as `go.mod`, `.git`, `package.json`, or configured equivalents. The first marked project root that contains `masterdata/` becomes the workspace root. The loader then reads schemas from `<workspace>/masterdata/schema` and generation data from `<workspace>/masterdata/generations`.
+When the user does not pass an explicit workspace, the host starts at the process current working directory. If that directory contains `masterdata/`, it is immediately selected as the workspace root. This current-directory check takes precedence over parent project markers so nested sample projects such as `examples/maze` can be launched from their own directory even when an ancestor repository also contains `masterdata/`.
 
-If the current working directory is a child of the project, the same upward search applies. If it is already under `masterdata/`, the containing project root is still selected, not the nested `masterdata` subdirectory. Directly launching a packaged binary from `dist-native/masterdatamate` therefore works when the shell current working directory is the project root or one of its descendants.
+If the current directory does not contain `masterdata/`, the host walks toward the filesystem root. Each directory is checked first for `masterdata/`, then for project root markers such as `go.mod`, `.git`, `package.json`, or configured equivalents. A directory that contains `masterdata/` becomes the workspace root regardless of whether it has a project root marker. A marked project root without `masterdata/` does not stop discovery; discovery continues upward until a `masterdata/` directory is found or the filesystem root is reached. The loader then reads schemas from `<workspace>/masterdata/schema` and generation data from `<workspace>/masterdata/generations`.
+
+If the current working directory is already under a `masterdata/` tree, the containing workspace root is selected, not the nested `masterdata` subdirectory. Directly launching a packaged binary from `dist-native/masterdatamate` therefore works when the shell current working directory is the intended workspace root or one of its descendants. When nested workspaces exist, the nearest ancestor that contains `masterdata/` wins.
 
 An explicit workspace path bypasses upward discovery but must resolve to a directory that contains `masterdata/`. Invalid or missing `masterdata/schema` and `masterdata/generations` paths are startup-blocking errors for hosts that read project data.
 
@@ -166,6 +183,23 @@ masterdata/generations/0010_balance_patch/
 
 Deletion is folder-scoped. It must not delete `masterdata/schema`, non-selected generation folders, or paths outside `masterdata/generations`.
 
+## Binary Asset Layout
+
+Uploaded files are stored outside generation folders:
+
+```text
+masterdata/binaries/<table>/<primary-key>.<extension>
+```
+
+Example:
+
+```text
+masterdata/binaries/item/potion_small.png
+masterdata/binaries/map/map_001.tmx
+```
+
+The first binary asset model is project-level rather than generation-level. If a record has different binary files per generation, that requires a later path model extension.
+
 ## Embedded Dependent Table Pattern
 
 A parent table file may include records for dependent child tables when the child records are naturally maintained with the parent record.
@@ -197,13 +231,17 @@ Each item in `children` declares the child `table`, child `key`, optional child 
 
 - Runtime data discovery starts from the process current working directory unless the user supplies an explicit workspace path.
 - Runtime data discovery must not use the executable path, npm wrapper path, embedded asset path, or build output directory as the implicit workspace.
-- Upward discovery stops at the first project root marker that contains `masterdata/`.
+- Implicit discovery selects the process current working directory when it contains `masterdata/`; otherwise it selects the nearest ancestor containing `masterdata/`.
+- Project root markers must not override a nearer nested workspace that contains `masterdata/`.
 - A discovered workspace root must expose `masterdata/schema` and `masterdata/generations`.
 - `masterdata/schema` is the canonical schema root.
 - `masterdata/generations` is the canonical generation data root.
+- `masterdata/editor_plugins.yaml` is the optional canonical editor plugin declaration file.
+- `masterdata/plugins` is the optional canonical editor plugin source and runtime asset root.
 - `masterdata/export_settings.yaml` is the optional canonical project-level export settings file.
 - `masterdata/generate_definitions.yaml` is the optional canonical project-level template generation definition file.
 - `masterdata/generate_templates` is the optional canonical template source directory for external template files.
+- `masterdata/binaries` is the optional canonical uploaded binary asset root.
 - The first runnable slice reads and writes only `masterdata/generations/0000_initial`.
 - Each generation folder contains `_config.yaml`.
 - Missing or invalid `_config.yaml` is a blocking error; the table editor must not open.
@@ -239,6 +277,9 @@ Each item in `children` declares the child `table`, child `key`, optional child 
 - Export settings reads and writes are scoped to `masterdata/export_settings.yaml`.
 - Template generation definition reads and writes are scoped to `masterdata/generate_definitions.yaml`.
 - Template generation template files are read from `masterdata/generate_templates` during generate.
+- Binary upload, download, and deletion are scoped to `masterdata/binaries`.
+- Binary upload paths must not follow symlinks or write outside `masterdata/binaries`.
+- A table schema rename or primary-key rename that affects binary asset paths must move the corresponding binary files or report cleanup diagnostics.
 - Generation deletion removes only selected validated generation folders under `masterdata/generations`.
 - Generation deletion must not follow symlinks outside `masterdata/generations`.
 - Generation deletion must leave at least one valid generation unless a separate project reset feature is later specified.
@@ -258,6 +299,7 @@ Each item in `children` declares the child `table`, child `key`, optional child 
 - [Generic master data model](generic-master-data-model.md)
 - [Generation model](generation-model.md)
 - [Export settings model](export-settings-model.md)
+- [Binary asset model](binary-asset-model.md)
 - [Template export definition model](template-export-definition-model.md)
 - [Generation merge and export flow](../data-flow/generation-merge-and-export-flow.md)
 - [Generation persistent merge flow](../data-flow/generation-persistent-merge-flow.md)

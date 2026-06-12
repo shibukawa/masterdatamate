@@ -1,0 +1,20 @@
+{
+  "name": "maze-editor-plugin-samples",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "npm run build:enemy && npm run build:maze",
+    "build:enemy": "vite build --config vite.enemy.config.js",
+    "build:maze": "vite build --config vite.maze.config.js"
+  },
+  "dependencies": {
+    "@vitejs/plugin-react": "^5.0.0",
+    "@vitejs/plugin-vue": "^6.0.0",
+    "vite": "^7.0.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "vue": "^3.5.0"
+  }
+}
+

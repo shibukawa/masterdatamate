@@ -56,7 +56,7 @@ MasterDataMate is a schema-driven master data editing application for tabular da
 - An **export flag** controls whether a schema field is included in generated outputs.
 - A **generation** is an ordered dataset layer. Exporting selected generations merges records by primary key, with newer generations taking precedence.
 - An **export backend** converts merged canonical data into CSV, YAML, SQLite, SQL DML, or other target formats.
-- An **editor plugin** is a project-local HTML/JavaScript editing surface that reads and writes declared table records through the same validation and save APIs as the ordinary table editor.
+- An **editor plugin** is a project-local custom editing surface, delivered as built HTML/JavaScript/CSS assets and optionally maintained from a source project such as Vite, that reads and writes declared table records through the same validation and save APIs as the ordinary table editor.
 - An **AI assistant** is an optional host-owned natural-language assistant that can read scoped project context, propose changes, and request tool execution through explicit application tools.
 - An **agent tool** is an application-owned operation exposed to the AI assistant for discovery, reading, analysis, proposal, or confirmed execution. Tools never expose raw filesystem or shell access.
 

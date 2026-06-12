@@ -41,3 +41,21 @@ fields:
     type: integer
     required: true
     export: true
+  - system_name: image
+    business_name: Image
+    type: binary_file
+    required: false
+    export: false
+    binary:
+      allowed_extensions:
+        - png
+        - jpg
+        - jpeg
+        - gif
+        - txt
+      allowed_mime_types:
+        - image/png
+        - image/jpeg
+        - image/gif
+        - text/plain
+      max_size_bytes: 1048576

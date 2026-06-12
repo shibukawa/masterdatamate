@@ -1,0 +1,31 @@
+enemy:
+  - key: slime
+    name: Slime
+    data:
+      name: Slime
+      hp: 24
+      attack: 8
+      defense: 5
+      speed: 6
+      magic: 2
+      luck: 5
+  - key: bat
+    name: Cave Bat
+    data:
+      name: Cave Bat
+      hp: 18
+      attack: 7
+      defense: 3
+      speed: 14
+      magic: 1
+      luck: 8
+  - key: golem
+    name: Stone Golem
+    data:
+      name: Stone Golem
+      hp: 60
+      attack: 15
+      defense: 18
+      speed: 2
+      magic: 4
+      luck: 1
