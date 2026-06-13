@@ -51,6 +51,18 @@ function fieldNameError(row) {
   return null;
 }
 
+function isExternalReferenceRow(row) {
+  return row.type === "external_reference" || row.kind === "reference";
+}
+
+function referenceTableError(row) {
+  const hasReference = Boolean(row.reference_table);
+  if (isExternalReferenceRow(row)) {
+    return hasReference ? null : "reference_table is required for external_reference fields.";
+  }
+  return hasReference ? "reference_table is only valid for external_reference fields." : null;
+}
+
 function listComparable(row) {
   const normalized = normalizeListRow(row);
   return JSON.stringify({
@@ -83,6 +95,7 @@ export const SchemaListGrid = forwardRef(function SchemaListGrid({ rows, onDirty
   const extableRef = useRef(null);
   const data = useMemo(() => rows.map(normalizeListRow), [rows]);
   const baseMetadata = useMemo(() => data.map(listComparable), [data]);
+  const version = useMemo(() => baseMetadata.join("|"), [baseMetadata]);
   const schema = useMemo(() => ({
     columns: [
       { key: "selected", header: "", type: "boolean", width: 48 },
@@ -141,6 +154,7 @@ export const SchemaListGrid = forwardRef(function SchemaListGrid({ rows, onDirty
   return (
     <div className={schemaStyles.grid}>
       <Extable
+        key={version}
         ref={extableRef}
         schema={schema}
         defaultData={data}
@@ -156,7 +170,9 @@ export const SchemaListGrid = forwardRef(function SchemaListGrid({ rows, onDirty
 export const SchemaDetailGrid = forwardRef(function SchemaDetailGrid({ rows, tableOptions, onDirtyChange, onSelectionChange, onUndoRedoChange }, ref) {
   const extableRef = useRef(null);
   const data = useMemo(() => rows.map(normalizeFieldRow), [rows]);
+  const referenceOptions = useMemo(() => ["", ...tableOptions], [tableOptions]);
   const baseMetadata = useMemo(() => data.map(fieldComparable), [data]);
+  const version = useMemo(() => `${baseMetadata.join("|")}:${tableOptions.join("|")}`, [baseMetadata, tableOptions]);
   const schema = useMemo(() => ({
     columns: [
       { key: "selected", header: "", type: "boolean", width: 48 },
@@ -174,7 +190,32 @@ export const SchemaDetailGrid = forwardRef(function SchemaDetailGrid({ rows, tab
       },
       { key: "business_name", header: "Label", type: "string", width: 180 },
       { key: "type", header: "Type", type: "enum", enum: FIELD_TYPES, enumAllowCustom: false, width: 150 },
-      { key: "reference_table", header: "Reference", type: "enum", enum: tableOptions, enumAllowCustom: false, width: 160 },
+      tableOptions.length
+        ? {
+          key: "reference_table",
+          header: "Reference",
+          type: "enum",
+          enum: referenceOptions,
+          enumAllowCustom: false,
+          nullable: true,
+          readonly: (row) => !isExternalReferenceRow(row),
+          width: 160,
+          conditionalStyle: (row) => {
+            const message = referenceTableError(row);
+            return message ? new Error(message) : null;
+          }
+        }
+        : {
+          key: "reference_table",
+          header: "Reference",
+          type: "string",
+          readonly: (row) => !isExternalReferenceRow(row),
+          width: 160,
+          conditionalStyle: (row) => {
+            const message = referenceTableError(row);
+            return message ? new Error(message) : null;
+          }
+        },
       { key: "constants", header: "Constants", type: "string", width: 220 },
       { key: "default_value", header: "Default", type: "string", width: 150 },
       { key: "export", header: "Output", type: "boolean", width: 92 },
@@ -182,7 +223,7 @@ export const SchemaDetailGrid = forwardRef(function SchemaDetailGrid({ rows, tab
       { key: "comment", header: "Comment", type: "string", width: 320 },
       { key: "formula", header: "Formula", type: "string", readonly: true, width: 220 }
     ]
-  }), [tableOptions]);
+  }), [tableOptions, referenceOptions]);
 
   function emitState(state) {
     const history = extableRef.current?.getUndoRedoHistory() ?? { undo: [], redo: [] };
@@ -220,6 +261,7 @@ export const SchemaDetailGrid = forwardRef(function SchemaDetailGrid({ rows, tab
   return (
     <div className={schemaStyles.grid}>
       <Extable
+        key={version}
         ref={extableRef}
         schema={schema}
         defaultData={data}

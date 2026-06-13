@@ -70,8 +70,8 @@ The plugin never owns canonical storage. It reads and writes the same schema-def
 | --- | --- | --- | --- |
 | `sidebar` | Left navigation alongside table entries. | `table` | Opens the plugin directly as a top-level workspace item. Use for custom editors that are the primary way to work with a domain area, such as a maze editor. |
 | `table_toolbar` | Toolbar for a selected table. | `table` or `group` | Opens a whole-table plugin immediately, or opens/focuses the derived grouping chooser for grouped plugins. |
-| `record_action` | Row action, context action, or selected-row action in an ordinary table grid. | `record` | Enabled when exactly one record row is selected or invoked. |
-| `group_action` | Table toolbar action that opens a grouping chooser, or an action on a grouping row. | `group` | Lets the user choose one grouping key, then opens all records in that group. |
+| `record_action` | Pencil/edit icon in a row action column immediately after the ordinary table grid's row-number/selection gutter. | `record` | Opens the plugin for the specific row whose icon was activated. |
+| `group_action` | Table toolbar action that opens a grouping chooser, then a pencil/edit icon in the grouping grid's row action column. | `group` | Lets the user choose one grouping key, then opens all records in that group. |
 
 If `entry_points` is omitted, the host derives one entry point for compatibility:
 

@@ -38,6 +38,10 @@ function comparable(row) {
   return JSON.stringify(normalized);
 }
 
+function dataVersion(baseMetadata, tableOptions, allFields) {
+  return `${baseMetadata.join("|")}:${tableOptions.join("|")}:${allFields.join("|")}`;
+}
+
 export const TemplateExportDefinitionGrid = forwardRef(function TemplateExportDefinitionGrid({
   rows,
   tableOptions,
@@ -54,6 +58,7 @@ export const TemplateExportDefinitionGrid = forwardRef(function TemplateExportDe
     Object.values(fieldOptions ?? {}).forEach((fields) => fields.forEach((field) => set.add(field)));
     return [...set].sort();
   }, [fieldOptions]);
+  const version = useMemo(() => dataVersion(baseMetadata, tableOptions, allFields), [baseMetadata, tableOptions, allFields]);
   const schema = useMemo(() => ({
     columns: [
       { key: "selected", header: "", type: "boolean", width: 48 },
@@ -71,8 +76,12 @@ export const TemplateExportDefinitionGrid = forwardRef(function TemplateExportDe
       { key: "name", header: "Name", type: "string", width: 180 },
       { key: "enabled", header: "Enabled", type: "boolean", width: 96 },
       { key: "scope", header: "Scope", type: "enum", enum: SCOPES, enumAllowCustom: false, width: 120 },
-      { key: "table", header: "Table", type: "enum", enum: tableOptions, enumAllowCustom: false, width: 150 },
-      { key: "group_field", header: "Group field", type: "enum", enum: allFields, enumAllowCustom: true, width: 150 },
+      tableOptions.length
+        ? { key: "table", header: "Table", type: "enum", enum: tableOptions, enumAllowCustom: false, width: 150 }
+        : { key: "table", header: "Table", type: "string", width: 150 },
+      allFields.length
+        ? { key: "group_field", header: "Group field", type: "enum", enum: allFields, enumAllowCustom: true, width: 150 }
+        : { key: "group_field", header: "Group field", type: "string", width: 150 },
       { key: "template_file", header: "Template file", type: "string", width: 260 },
       { key: "output_path", header: "Output path", type: "string", width: 260 },
       { key: "formatter", header: "Formatter", type: "enum", enum: FORMATTERS, enumAllowCustom: false, width: 120 },
@@ -116,6 +125,7 @@ export const TemplateExportDefinitionGrid = forwardRef(function TemplateExportDe
   return (
     <div className={schemaStyles.grid}>
       <Extable
+        key={version}
         ref={extableRef}
         schema={schema}
         defaultData={data}
@@ -131,7 +141,6 @@ export const TemplateExportDefinitionGrid = forwardRef(function TemplateExportDe
 export function TemplateExportDefinitionPage({
   gridRef,
   rows,
-  outputRoot,
   tableOptions,
   fieldOptions,
   dirty,
@@ -147,7 +156,6 @@ export function TemplateExportDefinitionPage({
   onUndo,
   onRedo,
   onDirtyChange,
-  onOutputRootChange,
   onSelectionChange,
   onUndoRedoChange
 }) {
@@ -168,17 +176,6 @@ export function TemplateExportDefinitionPage({
           <button type="button" className={styles.primary} onClick={onCommit} disabled={!dirty || saving}>{saving ? "Saving" : "Commit"}</button>
         </div>
       </header>
-      <div className={styles.toolbar}>
-        <label className={styles.outputRootField}>
-          <span>Output root</span>
-          <input
-            value={outputRoot}
-            onChange={(event) => onOutputRootChange?.(event.target.value)}
-            placeholder="generated"
-            disabled={saving}
-          />
-        </label>
-      </div>
       <div className={styles.gridWrap}>
         <TemplateExportDefinitionGrid
           ref={gridRef}

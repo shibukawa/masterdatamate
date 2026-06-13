@@ -32,7 +32,7 @@ The current Hono implementation is a development and prototype host. Packaged we
 - Provide APIs for binary asset upload, preview/download, metadata lookup, and deletion.
 - Provide APIs for editor plugin discovery, plugin asset loading, scoped plugin data, and plugin change-set commit.
 - Provide APIs for SPA page data: generation list, generation metadata, schema list, schema detail, and schema validation.
-- Provide APIs for optional AI assistant runs, provider profile discovery, provider health checks, and agent tool execution when AI features are enabled.
+- Provide APIs for optional AI assistant runs, CopilotKit runtime integration, AI settings load/save, provider profile discovery, provider health checks, secure credential storage, staged uploads, and agent tool execution when AI features are enabled.
 - Enforce configured save behavior when validation errors exist.
 - Do not implement separate application-level authorization for schema editing; users who can access the editing app may call schema editing APIs.
 - Keep Git, GitHub review, repository permissions, and approval workflow outside the application.
@@ -59,8 +59,11 @@ The current Hono implementation is a development and prototype host. Packaged we
 - Future slice: persistent generation merge API.
 - Later slice: export API.
 - Future slice: AI assistant run API.
+- Future slice: CopilotKit runtime-compatible AI endpoint.
 - Future slice: AI provider health check API.
+- Future slice: AI settings and credential storage APIs.
 - Future slice: AI agent tool execution API.
+- Future slice: AI staged upload and import helper APIs.
 - Later slice: editor plugin discovery API.
 - Later slice: editor plugin scoped data API.
 - Later slice: editor plugin multi-table commit API.
@@ -101,13 +104,37 @@ The current Hono implementation is a development and prototype host. Packaged we
 | POST | `/api/editor-plugins/:pluginId/changes/validate` | Future slice: validate a plugin change set without writing YAML. |
 | POST | `/api/editor-plugins/:pluginId/changes/commit` | Future slice: commit a validated plugin change set for one or more writable target tables. |
 | GET | `/api/ai/profiles` | Future slice: list configured AI provider profiles visible to the current host. |
+| GET | `/api/ai/settings` | Future slice: load AI settings, provider profiles, credential presence metadata, and local provider detection summary. |
+| PUT | `/api/ai/settings` | Future slice: save AI settings and provider profile metadata. Raw credentials are accepted only for replacement and are never returned. |
+| DELETE | `/api/ai/profiles/:profileId/credential` | Future slice: delete the stored credential for one provider profile after confirmation. |
 | POST | `/api/ai/profiles/:profileId/health` | Future slice: check endpoint, model, streaming, and tool-call capability for one provider profile. |
+| GET | `/api/ai/local-providers` | Future slice: detect local provider availability such as `fm`, Ollama, LM Studio, and Codex CLI. |
+| GET | `/api/ai/sessions` | Future slice: list AI assistant sessions for the current workspace. |
+| POST | `/api/ai/sessions` | Future slice: create a new AI assistant session for the current workspace. |
+| GET | `/api/ai/sessions/:sessionId` | Future slice: load one AI assistant session timeline and metadata. |
+| PATCH | `/api/ai/sessions/:sessionId` | Future slice: rename, archive, or restore one AI assistant session. |
+| DELETE | `/api/ai/sessions/:sessionId` | Future slice: delete one AI assistant session and expire its uncommitted staged uploads. |
+| POST | `/api/ai/sessions/:sessionId/compact` | Future slice: compact old assistant context into a summary for one session. |
 | POST | `/api/ai/runs` | Future slice: start an AI assistant run and stream assistant events, preferably through AG-UI-compatible event semantics. |
 | POST | `/api/ai/tools/:toolName/confirm` | Future slice: issue a confirmation token for a side-effecting AI tool preview. |
+| POST | `/api/copilotkit` | Future slice: CopilotKit runtime-compatible endpoint for the in-app AI assistant popup. |
+| POST | `/api/ai/uploads` | Future slice: stage one or more files for AI-assisted import or binary asset attachment. |
+| GET | `/api/ai/uploads` | Future slice: list files staged in the current AI/import session. |
+| GET | `/api/ai/uploads/:uploadId/inspect` | Future slice: inspect one staged file and return parse metadata, sample rows, or binary metadata. |
 
 The first runnable slice uses `generationId = 0000_initial` for record load, commit, and validation routes. The generation segment remains in the path so the API shape does not need to change when multi-generation support is added.
 
-AI routes are disabled unless [AI provider configuration model](../data-model/ai-provider-configuration-model.md) enables AI features and at least one usable provider profile is configured. AI assistant runs may use OpenAI-compatible hosted APIs or local providers such as Ollama and LM Studio through [AI assistant service](../component/ai-assistant-service.md). AI tool execution follows [Agent tool contract](../component/agent-tool-contract.md) and must not expose raw filesystem, shell, unrestricted network, or unscoped application internals.
+AI routes are disabled unless [AI provider configuration model](../data-model/ai-provider-configuration-model.md) enables AI features and at least one usable provider profile is configured. AI assistant runs may use OpenAI-compatible hosted APIs, local HTTP providers such as Ollama and LM Studio, local `fm serve`, or command-backed providers such as Codex CLI and Apple Foundation Models `fm` through [AI assistant service](../component/ai-assistant-service.md). AI tool execution follows [Agent tool contract](../component/agent-tool-contract.md) and must not expose raw filesystem, shell, unrestricted network, or unscoped application internals.
+
+The `/api/copilotkit` route is the preferred frontend integration route for the [In-app AI assistant panel](../ui-screen/in-app-ai-assistant-panel.md). It exposes a Copilot Runtime-compatible surface for CopilotKit prebuilt components and streams AG-UI-compatible events from the MasterDataMate assistant. The route registers MasterDataMate server tools from [Agent tool contract](../component/agent-tool-contract.md), accepts scoped frontend context, and delegates provider calls to [AI assistant service](../component/ai-assistant-service.md).
+
+AI settings routes support [AI settings screen](../ui-screen/ai-settings-screen.md). The settings load response returns provider metadata and credential presence only. It must never include raw API keys. Settings save may receive a new API key once from the browser and must immediately hand it to [AI secret storage service](../component/ai-secret-storage-service.md). Subsequent settings loads display saved credentials as masked placeholders through frontend behavior using `hasCredential` metadata.
+
+On macOS, if no explicit active AI profile is configured and `fm` is available, the AI settings response should mark the local `apple-fm-serve` profile as the default selection. This default does not require an API key.
+
+AI upload routes stage files for the assistant session. They do not create canonical binary assets or write table records by themselves. Import and asset attachment proposals produced from staged uploads must be previewed and confirmed before `commit_imported_records` or `attach_binary_asset` writes project files.
+
+AI session routes are backed by [AI assistant session model](../data-model/ai-assistant-session-model.md). They store host-local conversation state below `os.UserConfigDir()/masterdatamate/<workspaceBaseName>-<workspacePathHash>/ai-sessions/`, where the hash is derived from the cleaned absolute workspace root. Session route responses must expose IDs, titles, timestamps, provider metadata, compaction markers, and safe timeline content, but not the host storage path. `POST /api/ai/runs` must accept or create a `sessionId` and persist the resulting user, assistant, tool, run, and compaction data through [AI assistant service](../component/ai-assistant-service.md).
 
 Editor plugin APIs are disabled unless plugin declarations are present. The plugin discovery route returns metadata from [Editor plugin model](../data-model/editor-plugin-model.md) declarations, normally loaded from `masterdata/editor_plugins.yaml`, including normalized entry points for sidebar, table toolbar, record, and group placements. It must not expose filesystem paths outside the declared built plugin asset root under `masterdata/plugins`. Source directories and build metadata may be returned only as developer diagnostics; asset routes must not serve source trees, lockfiles, package manifests, or dependency folders unless they are intentionally part of the built output.
 
@@ -204,6 +231,7 @@ The future `POST /api/generations/analyze` route accepts explicit selected `gene
 - Packaged web distribution should migrate this host surface to [Go embedded web server host](go-embedded-web-server-host.md).
 - The first implementation assumes single-user editing.
 - Optional AI assistant support should use the same host service boundary as ordinary APIs. The Hono development host may proxy or implement AI routes, while packaged Go delivery should reuse shared Go services for provider configuration, tools, validation, generation operations, and export execution.
+- The first AI provider target should be `fm serve` through the OpenAI-compatible adapter when available, because it can run locally without a hosted API key.
 
 ## Dependencies
 
@@ -214,6 +242,7 @@ The future `POST /api/generations/analyze` route accepts explicit selected `gene
 - [Generic master data model](../data-model/generic-master-data-model.md)
 - [Binary asset model](../data-model/binary-asset-model.md)
 - [AI provider configuration model](../data-model/ai-provider-configuration-model.md)
+- [AI secret storage service](../component/ai-secret-storage-service.md)
 - [AI assistant service](../component/ai-assistant-service.md)
 - [Agent tool contract](../component/agent-tool-contract.md)
 
@@ -230,8 +259,10 @@ The future `POST /api/generations/analyze` route accepts explicit selected `gene
 - Future delete API: selected generation configuration, folder paths, and active generation fallback context.
 - Future duplicate API: selected source generation configurations and folders, automatically derived destination metadata, and copied file paths.
 - Future analyze API: selected generation configuration, table YAML files, table schemas, and normalized record counts.
-- Future AI provider APIs: provider configuration, host environment variables or secret references, and provider health check responses.
+- Future AI provider APIs: provider configuration, host environment variables or secret references, local provider command availability, and provider health check responses.
+- Future AI settings APIs: provider configuration, credential presence metadata, and local provider detection results.
 - Future AI assistant runs: scoped frontend context, schemas, records, diagnostics, generation metadata, export settings, and assistant conversation state through application services.
+- Future AI staged upload APIs: uploaded file bytes in temporary session storage, parse metadata, sample rows, and binary metadata.
 - Later schema field deletion API: selected schema fields, table schemas, generation table YAML files, and embedded dependent records for cleanup impact.
 - Later schema rename API: source schema, target schema name, and schema files that reference the renamed table.
 - Later schema field rename API: selected field rename mappings, table schema, generation table YAML files, and embedded dependent records for key rename impact.
@@ -250,6 +281,8 @@ The future `POST /api/generations/analyze` route accepts explicit selected `gene
 - Future analyze API writes no files.
 - Future AI assistant proposal tools write pending proposals and confirmation previews.
 - Future AI assistant execution tools write canonical YAML files or export artifacts only after explicit user confirmation and through existing application services.
+- Future AI settings APIs write provider profile metadata and OS credential-store entries through the AI secret storage service. They do not write raw API keys into project files.
+- Future AI staged upload APIs write temporary upload session files only. Canonical records, binary assets, and export artifacts are written only by confirmed execution tools.
 - Later schema save APIs write schema YAML files under `masterdata/schema`.
 - Later schema rename API writes renamed schema YAML, renamed table data file paths, and any schema YAML files whose references were updated.
 - Later schema field rename API writes the affected schema YAML and table YAML files whose record keys were renamed.
@@ -272,6 +305,7 @@ The future `POST /api/generations/analyze` route accepts explicit selected `gene
 - [Generation duplication flow](../data-flow/generation-duplication-flow.md)
 - [Generation analysis flow](../data-flow/generation-analysis-flow.md)
 - [In-app AI assistant panel](../ui-screen/in-app-ai-assistant-panel.md)
+- [AI settings screen](../ui-screen/ai-settings-screen.md)
 - [AI assistant service](../component/ai-assistant-service.md)
 - [Agent tool contract](../component/agent-tool-contract.md)
 

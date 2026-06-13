@@ -26,6 +26,9 @@
 ## Agent tool contract (agent-tool-contract)
 
 - links_to from AI assistant service
+- links_to from AI assistant service
+- links_to from AI assistant service
+- links_to from AI assistant service
 - depends_on from AI assistant service
 - depends_on from Shared web editing frontend
 - relates_to from AI provider configuration model
@@ -33,16 +36,44 @@
 - depends_on from Go embedded web server host
 - depends_on from Wails desktop host
 - links_to from Web service host
+- links_to from Web service host
 - depends_on from Web service host
 - relates_to from Web service host
 - invokes from In-app AI assistant panel
 - uses_component from In-app AI assistant panel
+- links_to from In-app AI assistant panel
 - relates_to from In-app AI assistant panel
 
 ## AI assistant service (ai-assistant-service)
 
 - depends_on from Agent tool contract
+- depends_on from AI secret storage service
 - depends_on from Shared web editing frontend
+- reads from AI assistant session model
+- relates_to from AI assistant session model
+- relates_to from AI provider configuration model
+- relates_to from Product overview
+- links_to from Go embedded web server host
+- depends_on from Go embedded web server host
+- depends_on from Wails desktop host
+- links_to from Web service host
+- links_to from Web service host
+- links_to from Web service host
+- depends_on from Web service host
+- relates_to from Web service host
+- uses_component from AI settings screen
+- invokes from In-app AI assistant panel
+- invokes from In-app AI assistant panel
+- uses_component from In-app AI assistant panel
+- relates_to from In-app AI assistant panel
+
+## AI secret storage service (ai-secret-storage-service)
+
+- links_to from AI assistant service
+- depends_on from AI assistant service
+- relates_to from AI assistant session model
+- links_to from AI provider configuration model
+- reads from AI provider configuration model
 - relates_to from AI provider configuration model
 - relates_to from Product overview
 - links_to from Go embedded web server host
@@ -50,10 +81,8 @@
 - depends_on from Wails desktop host
 - links_to from Web service host
 - depends_on from Web service host
-- relates_to from Web service host
-- invokes from In-app AI assistant panel
-- uses_component from In-app AI assistant panel
-- relates_to from In-app AI assistant panel
+- links_to from AI settings screen
+- uses_component from AI settings screen
 
 ## Export backend adapters (export-backend-adapters)
 
@@ -128,6 +157,7 @@
 - depends_on from Wails desktop host
 - depends_on from Web service host
 - relates_to from Single page application shell
+- uses_component from AI settings screen
 - uses_component from In-app AI assistant panel
 - uses_component from Table editing workspace
 
@@ -227,14 +257,28 @@
 - uses_component from Generation editing screen
 - relates_to from Generation editing screen
 
+## AI assistant session model (ai-assistant-session-model)
+
+- links_to from AI assistant service
+- links_to from AI assistant service
+- depends_on from AI assistant service
+- links_to from Web service host
+- links_to from In-app AI assistant panel
+- uses_component from In-app AI assistant panel
+- relates_to from In-app AI assistant panel
+
 ## AI provider configuration model (ai-provider-configuration-model)
 
 - depends_on from Agent tool contract
 - links_to from AI assistant service
 - depends_on from AI assistant service
+- depends_on from AI secret storage service
+- reads from AI assistant session model
+- relates_to from AI assistant session model
 - relates_to from Product overview
 - links_to from Web service host
 - depends_on from Web service host
+- uses_component from AI settings screen
 - uses_component from In-app AI assistant panel
 - relates_to from In-app AI assistant panel
 
@@ -389,6 +433,7 @@
 - links_to from Go CLI generate runner
 - relates_to from Go CLI generate runner
 - depends_on from AI assistant service
+- relates_to from AI secret storage service
 - depends_on from Shared web editing frontend
 - relates_to from Product overview
 - links_to from Wails desktop host
@@ -402,15 +447,18 @@
 - relates_to from Go CLI export runner
 - relates_to from Agent tool contract
 - depends_on from AI assistant service
+- depends_on from AI secret storage service
 - depends_on from Shared web editing frontend
 - relates_to from Product overview
 - relates_to from Go embedded web server host
 - relates_to from Web service host
+- relates_to from AI settings screen
 
 ## Web service host (web-service-host)
 
 - relates_to from Agent tool contract
 - depends_on from AI assistant service
+- depends_on from AI secret storage service
 - depends_on from HTML editor plugin runtime
 - depends_on from Shared web editing frontend
 - uses_component from Generation analysis flow
@@ -421,6 +469,7 @@
 - relates_to from Generation duplication flow
 - uses_component from Generation persistent merge flow
 - relates_to from Generation persistent merge flow
+- relates_to from AI assistant session model
 - relates_to from Binary asset model
 - relates_to from Canonical YAML file layout
 - relates_to from Editor plugin model
@@ -433,6 +482,7 @@
 - links_to from Wails desktop host
 - depends_on from Wails desktop host
 - relates_to from Single page application shell
+- relates_to from AI settings screen
 - uses_component from Generation editing screen
 - uses_component from Generation selection screen
 - uses_component from Schema editing screen
@@ -446,11 +496,27 @@
 - links_to from Wails desktop host
 - relates_to from Wails desktop host
 - relates_to from Web service host
+- uses_component from AI settings screen
 - uses_component from Generation editing screen
 - uses_component from Generation selection screen
 - uses_component from Schema editing screen
 - uses_component from Table editing workspace
 - depends_on from Template generation definition screen
+
+## AI settings screen (ai-settings-screen)
+
+- depends_on from AI assistant service
+- depends_on from AI secret storage service
+- relates_to from Shared web editing frontend
+- links_to from AI provider configuration model
+- writes from AI provider configuration model
+- relates_to from AI provider configuration model
+- relates_to from Product overview
+- links_to from Go embedded web server host
+- links_to from Web service host
+- relates_to from Web service host
+- links_to from Single page application shell
+- relates_to from Single page application shell
 
 ## Generation editing screen (generation-editing-screen)
 
@@ -486,11 +552,16 @@
 - relates_to from Agent tool contract
 - links_to from AI assistant service
 - depends_on from AI assistant service
+- relates_to from AI secret storage service
 - links_to from Shared web editing frontend
 - relates_to from Shared web editing frontend
+- reads from AI assistant session model
+- relates_to from AI assistant session model
 - relates_to from AI provider configuration model
 - relates_to from Product overview
+- links_to from Web service host
 - relates_to from Web service host
+- relates_to from AI settings screen
 
 ## Schema editing screen (schema-editing-screen)
 

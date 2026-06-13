@@ -16,11 +16,11 @@ The web service frontend is a single page application. The main editing route us
 
 The table editing shell presents active generation selection in the left pane only. Generation metadata editing is reached from an edit icon next to that sidebar generation selector, not from a peer navigation item mixed with table links.
 
-Schema editing is also reached from the left pane. It appears as a compact schema/settings action in the table navigation area, not as a normal table row and not as a primary top-bar destination. Template generation definition editing is reached from the same project action area because it configures project-level generated artifacts rather than table schemas or runtime export data.
+Schema editing, generation administration, and AI settings are reached from a compact project settings launcher in the left pane. The launcher appears as a single gear icon button so project settings do not make the sidebar vertically long.
 
 Schema editing does not have separate application-level permissions or feature gating. Any user who can use the editing app can navigate to schema editing.
 
-Export is a project-level operation, not a table-level action. The main editing shell exposes a single `Export` command in the left pane, outside the table list and outside table-specific toolbars. Activating this command opens an export dialog where the user chooses the output destination and export options before artifact creation starts.
+Export is a project-level operation, not a table-level action. The main editing shell exposes a single `Export` command in the left pane, outside the table list and outside table-specific toolbars. Activating this command opens an export dialog where the user chooses the output destination and export options before artifact creation starts. The `Export` command and the project settings gear sit side by side in the sidebar footer so project actions remain compact.
 
 The table editing left sidebar is divided into three vertical flex regions: a fixed header region, a flexible table navigation region, and a fixed project action footer. Only the table navigation region scrolls when many tables exist.
 
@@ -30,6 +30,7 @@ The table editing left sidebar is divided into three vertical flex regions: a fi
   - SPA-level route structure.
   - Persistent application chrome.
   - Page-level navigation between editing, generation selection, generation editing, and schema editing.
+  - Project settings launcher navigation for generation, schema, and AI settings.
   - Sidebar placement for active generation controls.
   - Sidebar placement for project-level export access.
   - Sidebar scroll behavior for large table lists.
@@ -47,6 +48,7 @@ The table editing left sidebar is divided into three vertical flex regions: a fi
 | `/generations` | [Generation selection screen](../ui-screen/generation-selection-screen.md) | Later slice: choose active generations for preview/export and inspect current selection. |
 | `/generations/edit` | [Generation editing screen](../ui-screen/generation-editing-screen.md) | Create, rename, order, and edit generation metadata in a dedicated grid page. |
 | `/schemas/:tableId?` | [Schema editing screen](../ui-screen/schema-editing-screen.md) | Edit table schema definitions. |
+| `/settings/ai` | [AI settings screen](../ui-screen/ai-settings-screen.md) | Configure AI provider profiles, credentials, local provider detection, and health checks. |
 | `/generate/definitions` | [Template export definition screen](../ui-screen/template-export-definition-screen.md) | Edit project-level Pongo2 template generation definitions. |
 
 ## Layout Rules
@@ -57,24 +59,29 @@ The table editing left sidebar is divided into three vertical flex regions: a fi
 - On the table editing route, the left pane uses a vertical flexbox layout with three regions.
 - The fixed top region contains the product title and active edit generation controls, including the generation metadata edit icon.
 - The flexible middle region contains only the table navigation list and consumes remaining sidebar height.
-- The fixed bottom region contains project-level actions, including `Export` and `Edit schemas`.
+- The fixed bottom region contains compact project-level actions, including `Export` and a settings gear launcher.
 - If the table list is taller than the available middle-region height, only the middle table navigation region shows a scrollbar.
-- The product title, active generation selector, `Export`, and `Edit schemas` controls must remain visible while the user scrolls a long table list.
+- The product title, active generation selector, `Export`, and settings gear controls must remain visible while the user scrolls a long table list.
 - The left pane itself must not become the primary scrolling container during normal table editing because that would scroll fixed header or footer controls out of view.
 - The active edit generation selector appears only once in the table editing shell.
 - The table editing top bar must not duplicate the active edit generation selector from the left pane.
-- A compact edit icon, preferably a pencil icon button, appears adjacent to the left-pane generation selector and navigates to `/generations/edit`.
-- The generation edit icon must have an accessible name and tooltip such as `Edit generations` so users understand that it opens generation metadata editing, not the selected table.
-- A compact schema/settings icon button appears in the left pane near the table navigation header or footer and navigates to `/schemas`.
-- The schema/settings icon must have an accessible name and tooltip such as `Edit schemas` so users understand that it opens table schema editing, not a table record grid.
-- The schema/settings icon must not appear as a normal table row because that would visually compete with table choices.
+- A compact project settings icon button appears in the left pane footer next to `Export`.
+- The settings icon should use a gear icon and have an accessible name and tooltip such as `Project settings`.
+- Activating the settings gear opens a small popover menu rather than navigating immediately.
+- The settings popover contains `Generations`, `Schemas`, and `AI` actions.
+- The `Generations` action navigates to `/generations/edit`.
+- The `Schemas` action navigates to `/schemas`.
+- The `AI` action navigates to `/settings/ai`.
+- The settings gear and its menu items must not appear as normal table rows because they would visually compete with table choices.
+- The earlier pencil icon beside the generation selector is replaced by the settings gear `Generations` menu item unless a later design deliberately keeps both; the compact footer gear is the preferred route to avoid duplicated settings entry points.
 - A single project-level `Export` button appears in the left pane, preferably in the sidebar footer or project action area, visually separated from table rows.
+- The `Export` button and settings gear appear horizontally in the project action footer so they do not increase sidebar height.
 - A project-level `Generate definitions` action appears in the project action area and navigates to `/generate/definitions`.
 - The `Export` button must not appear at the bottom of the right pane, inside a selected table panel, or as a table-specific action.
 - The left-pane `Export` button opens an export dialog instead of immediately writing files.
 - The export dialog collects the output destination, export format, and any export options required by [Export execution flow](../data-flow/export-execution-flow.md).
 - Confirming the export dialog runs pre-export validation before artifact creation.
-- The table navigation list must not include separate `Data editing`, `Generation editing`, or `Schema editing` items that visually compete with table choices.
+- The table navigation list must not include separate `Data editing`, `Generation editing`, `Schema editing`, or `AI settings` items that visually compete with table choices.
 - The center pane is dominated by the `extable` component.
 - Secondary controls should live in top bars, side panels, drawers, or inspectors rather than reducing the grid's primary area.
 - Generation selection and schema editing are separate SPA views.
@@ -88,8 +95,10 @@ The table editing left sidebar is divided into three vertical flex regions: a fi
 - Navigation must preserve unsaved-change warnings when the current page has dirty YAML or schema edits.
 - Navigating from table editing to generation editing must run the same dirty-state guard as other route changes.
 - Navigating from table editing to schema editing must run the same dirty-state guard as other route changes.
+- Navigating from table editing to AI settings must run the same dirty-state guard as other route changes.
 - Returning from generation editing must restore the previous table editing context: active table, active edit generation, generation display mode, and, when practical, grid scroll position and selected row.
 - If `/generations/edit` is opened directly with no previous table context, its return control navigates to the default table editing route.
+- If `/settings/ai` is opened directly with no previous table context, its return control navigates to the default table editing route.
 - Browser back and in-app back controls should follow the same dirty-state and context-restoration behavior.
 
 ## Shared State
@@ -102,6 +111,8 @@ The table editing left sidebar is divided into three vertical flex regions: a fi
 - Dirty state.
 - Save behavior policy for validation errors.
 - Export dialog state.
+- Project settings popover state.
+- AI provider profile and health summary.
 - Current workspace/repository root when applicable.
 
 ## Related Documents
@@ -111,6 +122,7 @@ The table editing left sidebar is divided into three vertical flex regions: a fi
 - [Generation selection screen](../ui-screen/generation-selection-screen.md)
 - [Generation editing screen](../ui-screen/generation-editing-screen.md)
 - [Schema editing screen](../ui-screen/schema-editing-screen.md)
+- [AI settings screen](../ui-screen/ai-settings-screen.md)
 - [Template export definition screen](../ui-screen/template-export-definition-screen.md)
 - [Web service host](../server-component/web-service-host.md)
 

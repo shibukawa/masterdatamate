@@ -30,12 +30,17 @@ This host replaces the development-only split between the Vite dev server and th
 - Provide a CLI entry point for running the packaged web server.
 - Provide a CLI entry point for standalone export batch execution through [Go CLI export runner](../batch-component/go-cli-export-runner.md).
 - Optionally provide AI assistant HTTP routes, provider configuration, and agent tools through shared Go services when AI features are enabled.
+- Provide OS-backed AI credential storage through shared services when AI settings are enabled.
+- Use the shared Go keyring adapter for AI credential storage rather than host-specific ad hoc credential code.
+- Manage local AI provider child processes when a built-in profile requires it, including `fm serve` over a Unix domain socket.
 - Package web delivery as one executable plus user/project data, not as separate frontend and backend processes.
 
 ## Interfaces
 
 - HTTP API routes from [Web service host](web-service-host.md).
 - Optional AI assistant and agent tool routes from [AI assistant service](../component/ai-assistant-service.md).
+- Optional AI settings and credential storage routes from [AI settings screen](../ui-screen/ai-settings-screen.md) and [AI secret storage service](../component/ai-secret-storage-service.md).
+- Optional managed local provider lifecycle for `fm serve`, including a host-owned Unix domain socket endpoint used by the OpenAI-compatible adapter.
 - Embedded SPA static file server.
 - Command-line server launcher.
 - Command-line export runner.
@@ -70,6 +75,16 @@ This host replaces the development-only split between the Vite dev server and th
 - The process exits non-zero when the workspace root cannot be resolved or when required `masterdata` paths are invalid.
 - The `export` subcommand resolves the workspace with the same rules but does not start the web server or require embedded frontend assets at runtime.
 
+## Managed Local AI Provider Rules
+
+- The Go host may start `fm serve` automatically for the built-in `apple-fm-serve` profile when AI is enabled, `fm` is available, and no user-managed endpoint is configured.
+- Managed `fm serve` should bind to a Unix domain socket generated under the host runtime temp directory when supported by the installed `fm` command.
+- Managed `fm serve` must not bind to non-loopback TCP interfaces. Loopback TCP is allowed only as an explicit fallback or user-managed configuration.
+- The Go host owns the child process lifecycle: startup, readiness probing, cancellation, process termination, stderr capture, and stale socket cleanup.
+- The generated UDS path is host-local runtime state. It may be used internally by the provider adapter but must not be exposed as a browser-editable setting.
+- If managed startup fails, the AI profile health check reports a clear diagnostic and does not silently fall back to a hosted provider.
+- Managed local provider processes must not be started for batch export commands that do not use AI features.
+
 ## Build Pipeline
 
 1. Install frontend dependencies from `package-lock.json`.
@@ -88,6 +103,7 @@ The build pipeline must make asset freshness deterministic. A Go release build s
 - [Canonical YAML file layout](../data-model/canonical-yaml-file-layout.md)
 - [Schema validation engine](../component/schema-validation-engine.md)
 - [AI assistant service](../component/ai-assistant-service.md)
+- [AI secret storage service](../component/ai-secret-storage-service.md)
 - [Agent tool contract](../component/agent-tool-contract.md)
 
 ## Reads
@@ -98,6 +114,7 @@ The build pipeline must make asset freshness deterministic. A Go release build s
 - Generation configuration and generation table files under the configured workspace root.
 - Export settings under `masterdata/export_settings.yaml` when export settings or export execution routes are used.
 - AI provider configuration and host environment variables or secret references when AI routes are enabled.
+- OS credential store entries for AI provider credentials through the shared Go keyring adapter when AI settings are enabled.
 
 ## Writes
 
@@ -106,6 +123,8 @@ The build pipeline must make asset freshness deterministic. A Go release build s
 - Export settings at `masterdata/export_settings.yaml` when the export dialog saves format defaults.
 - Export artifacts when export APIs are implemented.
 - AI assistant conversation state, pending proposals, and confirmed AI tool outputs when AI routes are enabled.
+- AI provider profile metadata. Raw API keys are written only to the OS credential store through the secret storage service.
+- Host-runtime local provider state such as generated UDS socket files and child process handles. This state is not canonical workspace data.
 - No frontend asset files at runtime.
 
 ## Related Requirements

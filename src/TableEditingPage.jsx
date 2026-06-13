@@ -17,6 +17,7 @@ export function TableEditingPage({
   saving,
   selection,
   pluginActions = [],
+  rowPluginActions = [],
   onSetTableViewMode,
   onAddRow,
   onDeleteSelectedRow,
@@ -25,9 +26,9 @@ export function TableEditingPage({
   onOpenPlugin,
   onBinaryUpload,
   onDirtyChange,
-  onSelectionChange
+  onSelectionChange,
+  onOpenRowPlugin
 }) {
-  const hasSelectedRow = selection?.activeRowIndex != null || selection?.activeRowKey != null;
   return (
     <section className={styles.workspace}>
       <header className={styles.toolbar}>
@@ -51,7 +52,7 @@ export function TableEditingPage({
               type="button"
               key={`${plugin.plugin_id}:${entryPoint.entry_id || entryPoint.id}`}
               onClick={() => onOpenPlugin(plugin, entryPoint)}
-              disabled={!schema || (entryPoint.placement === "record_action" && !hasSelectedRow)}
+              disabled={!schema}
             >
               {entryPoint.label || plugin.display_name}
             </button>
@@ -70,9 +71,11 @@ export function TableEditingPage({
             mode={mode}
             activeGenerationId={editGenerationId}
             referenceCandidates={referenceCandidates}
+            rowPluginActions={rowPluginActions}
             onBinaryUpload={onBinaryUpload}
             onDirtyChange={onDirtyChange}
             onSelectionChange={onSelectionChange}
+            onOpenRowPlugin={onOpenRowPlugin}
           />
         ) : (
           <div className={styles.emptyState}>{status}</div>

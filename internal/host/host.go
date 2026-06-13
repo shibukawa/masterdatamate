@@ -249,6 +249,9 @@ func (s *server) dispatchAPI(r *http.Request) (int, any, string, []byte, error) 
 	if len(parts) >= 2 && parts[1] == "generations" {
 		return s.dispatchGenerationAPI(r, parts)
 	}
+	if len(parts) >= 2 && parts[1] == "ai" {
+		return s.dispatchAIAPI(r, parts)
+	}
 	if len(parts) >= 2 && parts[1] == "export-settings" {
 		return s.dispatchExportSettingsAPI(r, parts)
 	}
@@ -2186,6 +2189,13 @@ func sliceAny(value any) []any {
 		return nil
 	}
 	if items, ok := value.([]any); ok {
+		return items
+	}
+	if rows, ok := value.([]map[string]any); ok {
+		items := make([]any, 0, len(rows))
+		for _, row := range rows {
+			items = append(items, row)
+		}
 		return items
 	}
 	return nil

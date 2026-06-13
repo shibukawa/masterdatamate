@@ -28,7 +28,8 @@ MasterDataMate is a schema-driven master data editing application for tabular da
   - Shared web frontend core that can later be reused by editor extensions and standalone apps.
   - Optional project-local editor plugins for visual or domain-specific master data editing.
   - Optional in-app AI assistant panel for natural-language guidance, analysis, proposed changes, and confirmed tool execution.
-  - OpenAI-compatible hosted or local LLM provider configuration, including OpenAI, Ollama, and LM Studio profiles.
+  - OpenAI-compatible hosted or local LLM provider configuration, including OpenAI, Ollama, LM Studio, Codex CLI, and Apple Foundation Models `fm` profiles.
+  - AI settings UI for selecting the AI backend and saving provider credentials through OS-backed secret storage.
 - Out of scope:
   - Approval workflow.
   - Repository permission management.
@@ -59,6 +60,8 @@ MasterDataMate is a schema-driven master data editing application for tabular da
 - An **editor plugin** is a project-local custom editing surface, delivered as built HTML/JavaScript/CSS assets and optionally maintained from a source project such as Vite, that reads and writes declared table records through the same validation and save APIs as the ordinary table editor.
 - An **AI assistant** is an optional host-owned natural-language assistant that can read scoped project context, propose changes, and request tool execution through explicit application tools.
 - An **agent tool** is an application-owned operation exposed to the AI assistant for discovery, reading, analysis, proposal, or confirmed execution. Tools never expose raw filesystem or shell access.
+- A **command-backed AI provider** is a local executable such as Codex CLI or Apple's Foundation Models `fm` command that the host invokes through a constrained adapter instead of an HTTP model API.
+- An **AI credential** is a provider secret entered through AI settings and stored by the backend in an OS credential store such as Keychain or Windows Credential Manager; it is never canonical master data.
 
 ## Initial Runnable Slice
 
@@ -86,9 +89,11 @@ MasterDataMate is a schema-driven master data editing application for tabular da
 - [HTML editor plugin runtime](../component/html-editor-plugin-runtime.md)
 - [Export backend adapters](../component/export-backend-adapters.md)
 - [AI provider configuration model](../data-model/ai-provider-configuration-model.md)
+- [AI secret storage service](../component/ai-secret-storage-service.md)
 - [AI assistant service](../component/ai-assistant-service.md)
 - [Agent tool contract](../component/agent-tool-contract.md)
 - [In-app AI assistant panel](../ui-screen/in-app-ai-assistant-panel.md)
+- [AI settings screen](../ui-screen/ai-settings-screen.md)
 - [Web service host](../server-component/web-service-host.md)
 - [Go embedded web server host](../server-component/go-embedded-web-server-host.md)
 - [Wails desktop host](../server-component/wails-desktop-host.md)

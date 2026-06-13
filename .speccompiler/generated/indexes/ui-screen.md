@@ -1,5 +1,6 @@
 # ui-screen index
 
+- [AI settings screen](../../specs/ui-screen/ai-settings-screen.md) `ai-settings-screen`
 - [Generation editing screen](../../specs/ui-screen/generation-editing-screen.md) `generation-editing-screen`
 - [Generation selection screen](../../specs/ui-screen/generation-selection-screen.md) `generation-selection-screen`
 - [In-app AI assistant panel](../../specs/ui-screen/in-app-ai-assistant-panel.md) `in-app-ai-assistant-panel`

@@ -25,7 +25,8 @@ The shared web editing frontend is the reusable React + Vite UI core for editing
   - YAML-backed load and save integration through host-specific adapters.
   - Integration with npm package `extable` as the primary Excel-like table editing component.
   - Optional editor plugin surfaces, loaded from built HTML/JavaScript/CSS assets, for schema-defined data that is difficult to edit as a grid.
-  - Optional in-app AI assistant panel for natural-language guidance, tool-backed analysis, proposed changes, and confirmed execution.
+  - Optional in-app AI assistant panel for natural-language guidance, tool-backed analysis, proposed changes, file import assistance, and confirmed execution.
+  - AI settings screen for provider selection, health checks, and credential entry.
   - SPA navigation across table editing, generation selection, generation editing, and schema editing pages.
 - Out of scope:
   - GitHub approval workflow UI.
@@ -48,11 +49,14 @@ The shared web editing frontend is the reusable React + Vite UI core for editing
 - The shared frontend should discover applicable editor plugin entry points for the left navigation, selected table, selected record, or selected grouping row from [Editor plugin model](../data-model/editor-plugin-model.md) declarations.
 - Tables whose schema declares `ui.table_list_visibility: plugin_only` or `hidden` should not appear as ordinary table navigation entries, but must remain available to plugin scopes, validation, export, schema diagnostics, and explicit repair tooling.
 - Editor plugin assets are loaded through the [HTML editor plugin runtime](html-editor-plugin-runtime.md); source projects such as React/Vue/Vite plugins are built before runtime and are not executed by the shared frontend.
-- The shared frontend may render the [In-app AI assistant panel](../ui-screen/in-app-ai-assistant-panel.md) as a dock, drawer, or focused route.
+- The shared frontend renders the [In-app AI assistant panel](../ui-screen/in-app-ai-assistant-panel.md) with CopilotKit's popup-style assistant surface, exposed through a floating action button that can be opened from every primary screen.
+- The application shell should provide the CopilotKit provider at the root and connect it to the host's Copilot Runtime-compatible endpoint.
 - The AI panel must send scoped context through the host adapter rather than reading canonical YAML files directly.
 - The AI panel must render proposed changes and side-effecting tool confirmations through host-owned UI controls.
 - The AI panel must not bypass the same validation, save confirmation, generation, schema, and export rules used by ordinary screens.
-- AG-UI events may drive assistant timeline, tool progress, state updates, and confirmation states, but generated UI must not replace host-owned save or export controls.
+- CopilotKit and AG-UI events may drive assistant timeline, tool progress, state updates, frontend tools, and confirmation states, but generated UI must not replace host-owned save, import, schema, generation, or export controls.
+- Browser-only AI actions such as opening a file picker, focusing a row, switching visible panels, or highlighting proposed changes may be implemented as CopilotKit frontend tools.
+- Workspace reads, validation, YAML writes, generation changes, import commits, binary asset attachment, and export execution must remain server tools backed by host services.
 - Opening a plugin surface must use the same dirty-state confirmation flow as navigation away from an `extable` commit-mode surface.
 - Plugin edits must participate in the same pending-edit, validation, confirmation, save, revert, and reload lifecycle as table grid edits.
 - Plugin save controls may be rendered by the shared frontend chrome even when the plugin provides its own domain-specific controls inside the isolated editor surface.
@@ -63,8 +67,11 @@ The shared web editing frontend is the reusable React + Vite UI core for editing
 - Generation metadata editing is opened from a compact pencil/edit icon next to the left-pane generation selector.
 - The generation edit icon must provide an accessible name and tooltip such as `Edit generations`.
 - Schema editing is opened from a compact schema/settings icon in the left pane near the table navigation header or footer.
-- The schema/settings icon must provide an accessible name and tooltip such as `Edit schemas`.
-- The schema/settings icon must not be rendered as a normal table navigation row.
+- Project settings are opened from one compact gear icon in the left pane footer next to `Export`.
+- The project settings gear opens a popover with `Generations`, `Schemas`, and `AI` actions.
+- The popover actions navigate to `/generations/edit`, `/schemas`, and `/settings/ai`.
+- The gear icon must provide an accessible name and tooltip such as `Project settings`.
+- The settings gear and popover actions must not be rendered as normal table navigation rows.
 - Schema editing is available to any app user; the frontend does not hide it behind a separate schema-authoring permission or feature flag.
 - Generation metadata editing uses a focused, modal-like SPA route rather than a normal peer item in the left navigation.
 - Generation metadata editing must use `extable` for the metadata grid so batch editing, copy/paste, and commit-mode behavior are consistent with table data editing.
@@ -170,6 +177,7 @@ The shared web editing frontend is the reusable React + Vite UI core for editing
 - [Generation selection screen](../ui-screen/generation-selection-screen.md)
 - [Generation editing screen](../ui-screen/generation-editing-screen.md)
 - [Schema editing screen](../ui-screen/schema-editing-screen.md)
+- [AI settings screen](../ui-screen/ai-settings-screen.md)
 - [In-app AI assistant panel](../ui-screen/in-app-ai-assistant-panel.md)
 
 ## Native-Language Summary

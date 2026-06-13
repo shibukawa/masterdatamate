@@ -54,6 +54,14 @@
   padding-top: 14px;
 }
 
+.sidebarActionRow {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: minmax(0, 1fr) 40px;
+  padding: 0 8px;
+  position: relative;
+}
+
 .sideSection label {
   color: #a7b4c8;
   font-size: 12px;
@@ -141,6 +149,54 @@
   width: 18px;
 }
 
+.settingsButton {
+  align-items: center;
+  background: #25324a;
+  border: 1px solid #35445e;
+  border-radius: 6px;
+  color: #dbe5f2;
+  display: inline-flex;
+  justify-content: center;
+  min-height: 36px;
+  padding: 0;
+  width: 40px;
+}
+
+.settingsButton svg {
+  fill: currentColor;
+  height: 18px;
+  width: 18px;
+}
+
+.settingsMenu {
+  background: #ffffff;
+  border: 1px solid #c8d3df;
+  border-radius: 8px;
+  bottom: 44px;
+  box-shadow: 0 16px 36px rgba(15, 23, 42, 0.24);
+  display: grid;
+  min-width: 180px;
+  padding: 6px;
+  position: absolute;
+  right: 8px;
+  z-index: 30;
+}
+
+.settingsMenu button {
+  background: transparent;
+  border-color: transparent;
+  color: #243041;
+  justify-content: start;
+  min-height: 34px;
+  padding: 0 10px;
+  text-align: left;
+}
+
+.settingsMenu button:hover {
+  background: #eef3f8;
+  border-color: transparent;
+}
+
 .primary {
   background: #2563eb;
   border-color: #2563eb;
@@ -149,7 +205,8 @@
 
 .iconButton:hover,
 .backButton:hover,
-.sidebarAction:hover {
+.sidebarAction:hover,
+.settingsButton:hover {
   background: #31415f;
   border-color: #4a5f84;
 }

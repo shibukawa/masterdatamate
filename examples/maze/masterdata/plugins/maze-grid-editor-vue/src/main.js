@@ -53,6 +53,8 @@ function createMazeEditor(context) {
   const message = ref("");
   const enemies = computed(() => context.tables?.enemy?.records ?? []);
   const selectedCell = ref(null);
+  const dragging = ref(false);
+  const dragChanged = ref(false);
 
   function propose() {
     context.host?.setDirty?.(true);
@@ -68,11 +70,46 @@ function createMazeEditor(context) {
     }
   }
 
-  function paint(cell) {
-    cell.terrain = selectedTerrain.value;
-    if (cell.terrain === "wall") cell.enemy_id = "";
+  function applyTerrain(cell) {
+    if (!cell) return false;
+    const nextTerrain = selectedTerrain.value;
+    const nextEnemyId = nextTerrain === "wall" ? "" : cell.enemy_id;
+    if (cell.terrain === nextTerrain && cell.enemy_id === nextEnemyId) return false;
+    cell.terrain = nextTerrain;
+    cell.enemy_id = nextEnemyId;
     selectedCell.value = cell;
+    return true;
+  }
+
+  function paint(cell) {
+    if (!applyTerrain(cell)) return;
     propose();
+  }
+
+  function beginPaint(cell, event) {
+    if (event.button !== 0) return;
+    event.preventDefault();
+    dragging.value = true;
+    dragChanged.value = applyTerrain(cell);
+    selectedCell.value = cell;
+  }
+
+  function dragPaint(cell, event) {
+    if (!dragging.value) return;
+    event.preventDefault();
+    if (applyTerrain(cell)) dragChanged.value = true;
+  }
+
+  function finishPaint() {
+    if (!dragging.value) return;
+    dragging.value = false;
+    if (dragChanged.value) propose();
+    dragChanged.value = false;
+  }
+
+  function keyboardPaint(cell, event) {
+    if (event.detail !== 0) return;
+    paint(cell);
   }
 
   function placeEnemy(cell) {
@@ -96,7 +133,12 @@ function createMazeEditor(context) {
         selectedCell,
         enemies,
         message,
+        dragging,
         paint,
+        beginPaint,
+        dragPaint,
+        finishPaint,
+        keyboardPaint,
         placeEnemy
       };
     },
@@ -130,12 +172,17 @@ function createMazeEditor(context) {
         ]),
         h("section", {
           class: "grid",
-          style: { gridTemplateColumns: `repeat(${this.width}, minmax(0, 1fr))` }
+          style: { gridTemplateColumns: `repeat(${this.width}, minmax(0, 1fr))` },
+          onPointerup: this.finishPaint,
+          onPointercancel: this.finishPaint,
+          onPointerleave: this.finishPaint
         }, this.cells.map((cell) => h("button", {
           key: `${cell.x}-${cell.y}`,
           type: "button",
           class: ["cell", cell.terrain, { active: this.selectedCell === cell, enemy: cell.enemy_id }],
-          onClick: () => this.paint(cell),
+          onPointerdown: (event) => this.beginPaint(cell, event),
+          onPointerenter: (event) => this.dragPaint(cell, event),
+          onClick: (event) => this.keyboardPaint(cell, event),
           onContextmenu: (event) => {
             event.preventDefault();
             this.selectedCell = cell;

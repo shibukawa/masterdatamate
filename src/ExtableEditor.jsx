@@ -2,6 +2,8 @@ import React, { forwardRef, useImperativeHandle, useMemo, useRef } from "react";
 import { Extable } from "@extable/react";
 import styles from "./ExtableEditor.module.css";
 
+const PLUGIN_ACTION_COLUMN = "__plugin_action";
+
 function blankRow(schema, activeGenerationId) {
   return {
     id: crypto.randomUUID(),
@@ -11,7 +13,7 @@ function blankRow(schema, activeGenerationId) {
     isReadOnly: false,
     isOverridden: false,
     overriddenByGenerationId: "",
-    status: "Editable",
+    [PLUGIN_ACTION_COLUMN]: "",
     ...Object.fromEntries(schema.fields.map((field) => [field.system_name, field.type === "boolean" ? false : ""]))
   };
 }
@@ -112,27 +114,41 @@ function binaryEditConfigFor(field, onBinaryUpload, schema) {
   };
 }
 
-function toExtableSchema(schema, referenceCandidates, generationAware, onBinaryUpload) {
-  const generationColumns = generationAware ? [
+function actionLabel(action) {
+  return action?.entryPoint?.label || action?.plugin?.display_name || "Plugin editor";
+}
+
+function pluginActionValue(row, rowPluginActions) {
+  if (row?.isReadOnly || !rowPluginActions.length) return "";
+  const preferred = rowPluginActions.find(({ entryPoint }) => entryPoint.default) ?? rowPluginActions[0];
+  return {
+    label: "✎",
+    command: preferred.plugin.plugin_id,
+    commandfor: preferred.entryPoint.entry_id || preferred.entryPoint.id
+  };
+}
+
+function toExtableSchema(schema, referenceCandidates, onBinaryUpload, rowPluginActions) {
+  const actionColumns = rowPluginActions.length ? [
     {
-      key: "sourceGenerationLabel",
-      header: "Generation",
-      type: "string",
+      key: PLUGIN_ACTION_COLUMN,
+      header: "",
+      type: "button",
       readonly: true,
-      width: 210
-    },
-    {
-      key: "status",
-      header: "Status",
-      type: "string",
-      readonly: true,
-      width: 180
+      width: 48,
+      tooltip: {
+        getText: ({ rowId }) => {
+          const action = rowPluginActions.find(({ entryPoint }) => entryPoint.default) ?? rowPluginActions[0];
+          return action ? `Edit with ${actionLabel(action)}` : null;
+        }
+      },
+      conditionalStyle: (row) => row?.isReadOnly ? { disabled: true } : null
     }
   ] : [];
 
   return {
     columns: [
-      ...generationColumns,
+      ...actionColumns,
       ...schema.fields.map((field) => ({
       key: field.system_name,
       header: field.business_name,
@@ -166,9 +182,7 @@ export function displayRows(rows, schema, referenceCandidates) {
   return normalizeRows(rows, schema.table_id).map((row) => {
     const next = {
       ...row,
-      _readonly: Boolean(row.isReadOnly),
-      sourceGenerationLabel: row.sourceGenerationLabel ?? row.sourceGenerationId ?? "",
-      status: row.isOverridden ? `Overridden by ${row.overriddenByGenerationId}` : (row.isReadOnly ? "Readonly" : "Editable")
+      _readonly: Boolean(row.isReadOnly)
     };
     for (const field of schema.fields) {
       if (field.type !== "external_reference" || !field.reference?.table) continue;
@@ -199,19 +213,36 @@ export function displayRows(rows, schema, referenceCandidates) {
 function cleanRows(rows) {
   return rows.map(({ id, __clientId, ...row }) => {
     const next = {};
-    for (const [key, value] of Object.entries(row)) next[key] = storedValue(value);
+    for (const [key, value] of Object.entries(row)) {
+      if (key === PLUGIN_ACTION_COLUMN) continue;
+      next[key] = storedValue(value);
+    }
     return next;
   });
 }
 
-export const ExtableEditor = forwardRef(function ExtableEditor({ schema, rows, mode, activeGenerationId, referenceCandidates, onDirtyChange, onSelectionChange, onBinaryUpload }, ref) {
+export const ExtableEditor = forwardRef(function ExtableEditor({
+  schema,
+  rows,
+  mode,
+  activeGenerationId,
+  referenceCandidates,
+  rowPluginActions = [],
+  onDirtyChange,
+  onSelectionChange,
+  onBinaryUpload,
+  onOpenRowPlugin
+}, ref) {
   const extableRef = useRef(null);
   const fileInputRef = useRef(null);
   const binaryTargetRef = useRef(null);
   const openingTargetRef = useRef("");
-  const generationAware = useMemo(() => rows.some((row) => row.sourceGenerationId), [rows]);
-  const extableSchema = useMemo(() => toExtableSchema(schema, referenceCandidates, generationAware, openBinaryPicker), [schema, referenceCandidates, generationAware]);
-  const data = useMemo(() => displayRows(rows, schema, referenceCandidates), [rows, schema, referenceCandidates]);
+  const rowPluginActionVersion = useMemo(() => rowPluginActions.map(({ plugin, entryPoint }) => `${plugin.plugin_id}:${entryPoint.entry_id || entryPoint.id}`).join("|"), [rowPluginActions]);
+  const extableSchema = useMemo(() => toExtableSchema(schema, referenceCandidates, openBinaryPicker, rowPluginActions), [schema, referenceCandidates, rowPluginActions]);
+  const data = useMemo(() => displayRows(rows, schema, referenceCandidates).map((row) => ({
+    ...row,
+    [PLUGIN_ACTION_COLUMN]: pluginActionValue(row, rowPluginActions)
+  })), [rows, schema, referenceCandidates, rowPluginActions]);
 
   function binaryFields() {
     return schema.fields.filter((field) => field.type === "binary_file");
@@ -219,8 +250,33 @@ export const ExtableEditor = forwardRef(function ExtableEditor({ schema, rows, m
 
   function cleanRow(row) {
     const next = {};
-    for (const [key, value] of Object.entries(row ?? {})) next[key] = storedValue(value);
+    for (const [key, value] of Object.entries(row ?? {})) {
+      if (key === PLUGIN_ACTION_COLUMN) continue;
+      next[key] = storedValue(value);
+    }
     return next;
+  }
+
+  function pluginActionFromValue(value) {
+    if (!value || typeof value !== "object") return rowPluginActions.find(({ entryPoint }) => entryPoint.default) ?? rowPluginActions[0];
+    return rowPluginActions.find(({ plugin, entryPoint }) => (
+      plugin.plugin_id === value.command
+      && (entryPoint.entry_id || entryPoint.id) === value.commandfor
+    )) ?? rowPluginActions.find(({ entryPoint }) => entryPoint.default) ?? rowPluginActions[0];
+  }
+
+  function handlePluginAction(action) {
+    if (!action || action.colKey !== PLUGIN_ACTION_COLUMN) return false;
+    const row = extableRef.current?.getRow(action.rowId);
+    if (!row || row.isReadOnly) return true;
+    const target = pluginActionFromValue(action.value);
+    if (!target) return true;
+    onOpenRowPlugin?.({
+      plugin: target.plugin,
+      entryPoint: target.entryPoint,
+      row: cleanRow(row)
+    });
+    return true;
   }
 
   function rowKey(row) {
@@ -326,7 +382,7 @@ export const ExtableEditor = forwardRef(function ExtableEditor({ schema, rows, m
     >
       <input ref={fileInputRef} className={styles.hiddenFileInput} type="file" onChange={handleFileInput} />
       <Extable
-        key={`${schema.table_id}-${mode}`}
+        key={`${schema.table_id}-${mode}-${rowPluginActionVersion}`}
         ref={extableRef}
         schema={extableSchema}
         defaultData={data}
@@ -334,6 +390,7 @@ export const ExtableEditor = forwardRef(function ExtableEditor({ schema, rows, m
         options={{ renderMode: mode, editMode: "commit", lockMode: "none", layoutDiagnostics: true }}
         onTableState={(state) => onDirtyChange(state.canCommit)}
         onCellEvent={(selection, previous, reason) => {
+          if (reason === "action" && handlePluginAction(selection.action)) return;
           onSelectionChange(selection);
           const target = targetFromSelection(selection);
           const targetKey = target ? `${target.rowId ?? target.rowIndex}:${target.field.system_name}` : "";

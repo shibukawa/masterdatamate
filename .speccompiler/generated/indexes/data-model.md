@@ -1,5 +1,6 @@
 # data-model index
 
+- [AI assistant session model](../../specs/data-model/ai-assistant-session-model.md) `ai-assistant-session-model`
 - [AI provider configuration model](../../specs/data-model/ai-provider-configuration-model.md) `ai-provider-configuration-model`
 - [Binary asset model](../../specs/data-model/binary-asset-model.md) `binary-asset-model`
 - [Canonical YAML file layout](../../specs/data-model/canonical-yaml-file-layout.md) `canonical-yaml-file-layout`

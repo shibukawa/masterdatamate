@@ -136,8 +136,8 @@ The exact TypeScript names are descriptive. Implementations may ship plain JavaS
 
 1. The frontend finds plugin entry points applicable to the left navigation, selected table, selected record, or selected grouping row.
 2. For `entry_points.placement: sidebar`, the app shows a plugin item in the left navigation and opens it without requiring a selected table row.
-3. For `entry_points.placement: record_action`, the app shows an action for one selected row or one row action menu; each row represents one canonical record.
-4. For `entry_points.placement: group_action`, the app shows or focuses a derived `extable` grouping grid; each row represents one group key such as an external reference value.
+3. For `entry_points.placement: record_action`, the app shows a compact pencil/edit icon in a dedicated row action column immediately after the grid row-number/selection gutter; each row represents one canonical record.
+4. For `entry_points.placement: group_action`, the app shows or focuses a derived `extable` grouping grid; each row represents one group key such as an external reference value, and the plugin open affordance appears in the same row action column position.
 5. For `entry_points.placement: table_toolbar`, the app shows a table-level action. It opens directly for `open_mode: table` or opens the grouping chooser for `open_mode: group`.
 6. The host checks dirty-state for the current editing surface before leaving or replacing it.
 7. The host resolves the plugin declaration and entry point to the built `entry_html` and verifies that the runtime asset path is inside the declared plugin asset area.

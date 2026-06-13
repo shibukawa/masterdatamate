@@ -4,6 +4,7 @@ import "@extable/core/style.css";
 import "./global.css";
 import styles from "./App.module.css";
 import { api, uploadBinaryAsset as uploadBinaryAssetFile } from "./api.js";
+import { AISettingsPage } from "./AISettingsPage.jsx";
 import { displayRows, normalizeRows, storedValue } from "./ExtableEditor.jsx";
 import { GenerationEditingPage } from "./GenerationEditingPage.jsx";
 import { PluginEditingPage } from "./PluginEditingPage.jsx";
@@ -17,6 +18,7 @@ const TABLE_ROUTE = "/";
 const GENERATION_ROUTE = "/generations/edit";
 const SCHEMA_ROUTE = "/schemas";
 const EXPORT_DEFINITIONS_ROUTE = "/generate/definitions";
+const AI_SETTINGS_ROUTE = "/settings/ai";
 const EXPORT_FORMATS = [
   ["csv_zip", "CSV ZIP"],
   ["excel_csv_zip", "Excel CSV (BOM) ZIP"],
@@ -44,6 +46,7 @@ function pageFromPath(pathname) {
   if (pathname === GENERATION_ROUTE) return "generations";
   if (pathname === SCHEMA_ROUTE || pathname.startsWith(`${SCHEMA_ROUTE}/`)) return "schemas";
   if (pathname === EXPORT_DEFINITIONS_ROUTE) return "exportDefinitions";
+  if (pathname === AI_SETTINGS_ROUTE) return "aiSettings";
   return "tables";
 }
 
@@ -221,6 +224,8 @@ function App() {
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const [exportDialogGenerationIds, setExportDialogGenerationIds] = useState([]);
   const [exportDestination, setExportDestination] = useState("browser_download");
+  const [settingsMenuOpen, setSettingsMenuOpen] = useState(false);
+  const [aiSettingsDirty, setAISettingsDirty] = useState(false);
   const [editorPlugins, setEditorPlugins] = useState([]);
   const [pluginSession, setPluginSession] = useState(null);
 
@@ -348,11 +353,17 @@ function App() {
     return window.confirm("Unsaved generate definition edits exist. Discard them and leave?");
   }
 
+  function confirmAISettingsSwitch() {
+    if (!aiSettingsDirty) return true;
+    return window.confirm("Unsaved AI settings exist. Discard them and leave?");
+  }
+
   function confirmNavigation(nextPage = page) {
     if (page === "tables" && nextPage !== "tables") return confirmTableSwitch();
     if (page === "generations" && nextPage !== "generations") return confirmGenerationSwitch();
     if (page === "schemas" && nextPage !== "schemas") return confirmSchemaSwitch();
     if (page === "exportDefinitions" && nextPage !== "exportDefinitions") return confirmExportDefinitionSwitch();
+    if (page === "aiSettings" && nextPage !== "aiSettings") return confirmAISettingsSwitch();
     return true;
   }
 
@@ -372,9 +383,10 @@ function App() {
   function navigate(nextPage) {
     if (nextPage === page) return;
     if (!confirmNavigation(nextPage)) return;
-    const path = nextPage === "generations" ? GENERATION_ROUTE : (nextPage === "schemas" ? SCHEMA_ROUTE : (nextPage === "exportDefinitions" ? EXPORT_DEFINITIONS_ROUTE : TABLE_ROUTE));
+    const path = nextPage === "generations" ? GENERATION_ROUTE : (nextPage === "schemas" ? SCHEMA_ROUTE : (nextPage === "exportDefinitions" ? EXPORT_DEFINITIONS_ROUTE : (nextPage === "aiSettings" ? AI_SETTINGS_ROUTE : TABLE_ROUTE)));
     window.history.pushState({ page: nextPage }, "", path);
     setPage(nextPage);
+    setSettingsMenuOpen(false);
     if (nextPage === "schemas") setSchemaView("list");
   }
 
@@ -384,7 +396,7 @@ function App() {
       const nextPage = pageFromPath(window.location.pathname);
       if (nextPage === page) return;
       if (!confirmNavigation(nextPage)) {
-        const currentPath = page === "generations" ? GENERATION_ROUTE : (page === "schemas" ? (schemaView === "detail" && schemaDetail ? `${SCHEMA_ROUTE}/${encodeURIComponent(schemaDetail.table_id)}/edit` : SCHEMA_ROUTE) : (page === "exportDefinitions" ? EXPORT_DEFINITIONS_ROUTE : TABLE_ROUTE));
+        const currentPath = page === "generations" ? GENERATION_ROUTE : (page === "schemas" ? (schemaView === "detail" && schemaDetail ? `${SCHEMA_ROUTE}/${encodeURIComponent(schemaDetail.table_id)}/edit` : SCHEMA_ROUTE) : (page === "exportDefinitions" ? EXPORT_DEFINITIONS_ROUTE : (page === "aiSettings" ? AI_SETTINGS_ROUTE : TABLE_ROUTE)));
         window.history.pushState({ page }, "", currentPath);
         return;
       }
@@ -393,7 +405,7 @@ function App() {
     };
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
-  }, [page, dirty, generationDirty, schemaDirty, exportDefinitionDirty, schemaView, schemaDetail]);
+  }, [page, dirty, generationDirty, schemaDirty, exportDefinitionDirty, aiSettingsDirty, schemaView, schemaDetail]);
 
   async function loadTables() {
     const { payload } = await api("/api/tables");
@@ -1132,6 +1144,23 @@ function App() {
     setStatus(`Opening ${plugin.display_name}.`);
   }
 
+  function openRowPlugin({ plugin, entryPoint, row }) {
+    if (!row) {
+      setStatus("Select a record before opening this plugin.");
+      return;
+    }
+    if (row.isReadOnly) {
+      setStatus("Readonly generation rows cannot be edited by plugin.");
+      return;
+    }
+    openPlugin(plugin, entryPoint, {
+      kind: "record",
+      table: entryPoint.table || selectedTable,
+      key: rowPrimaryKey(row),
+      row: cleanRowValues(row)
+    });
+  }
+
   async function reloadCurrentTableAfterPluginSave() {
     if (!selectedTable || !editGenerationId) return;
     const { payload } = await api(`/api/tables/${selectedTable}/generation-view?activeGenerationId=${encodeURIComponent(editGenerationId)}&mode=${encodeURIComponent(tableViewMode)}`);
@@ -1274,7 +1303,7 @@ function App() {
               ))}
             </nav>
             <div className={styles.sidebarBottom}>
-              <div className={styles.sideSection}>
+              <div className={styles.sidebarActionRow}>
                 <button
                   type="button"
                   className={styles.sidebarAction}
@@ -1287,34 +1316,25 @@ function App() {
                   </svg>
                   <span>Export</span>
                 </button>
-              </div>
-              <div className={styles.sideSection}>
                 <button
                   type="button"
-                  className={styles.sidebarAction}
-                  aria-label="Edit schemas"
-                  title="Edit schemas"
-                  onClick={() => navigate("schemas")}
+                  className={styles.settingsButton}
+                  aria-label="Settings"
+                  title="Settings"
+                  aria-expanded={settingsMenuOpen}
+                  onClick={() => setSettingsMenuOpen((open) => !open)}
                 >
                   <svg aria-hidden="true" viewBox="0 0 24 24" focusable="false">
-                    <path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v13A2.5 2.5 0 0 1 17.5 21h-11A2.5 2.5 0 0 1 4 18.5v-13Zm2 0v13c0 .28.22.5.5.5h11a.5.5 0 0 0 .5-.5v-13a.5.5 0 0 0-.5-.5h-11a.5.5 0 0 0-.5.5Zm2 2h8v2H8v-2Zm0 4h8v2H8v-2Zm0 4h5v2H8v-2Z" />
+                    <path d="M19.4 13.5c.1-.5.1-1 .1-1.5s0-1-.1-1.5l2-1.5-2-3.5-2.4 1a8 8 0 0 0-2.6-1.5L14 2h-4l-.4 2.5A8 8 0 0 0 7 6L4.6 5l-2 3.5 2 1.5a8 8 0 0 0 0 3l-2 1.5 2 3.5L7 17a8 8 0 0 0 2.6 1.5L10 21h4l.4-2.5A8 8 0 0 0 17 17l2.4 1 2-3.5-2-1ZM12 15.5A3.5 3.5 0 1 1 12 8a3.5 3.5 0 0 1 0 7.5Z" />
                   </svg>
-                  <span>Edit schemas</span>
                 </button>
-              </div>
-              <div className={styles.sideSection}>
-                <button
-                  type="button"
-                  className={styles.sidebarAction}
-                  aria-label="Edit generate definitions"
-                  title="Edit generate definitions"
-                  onClick={() => navigate("exportDefinitions")}
-                >
-                  <svg aria-hidden="true" viewBox="0 0 24 24" focusable="false">
-                    <path d="M5 4h14v2H5V4Zm0 4h9v2H5V8Zm0 4h14v2H5v-2Zm0 4h9v2H5v-2Zm12.4-.6 1.4 1.4-3.8 3.8-2.4-2.4 1.4-1.4 1 1 2.4-2.4Z" />
-                  </svg>
-                  <span>Generate definitions</span>
-                </button>
+                {settingsMenuOpen ? (
+                  <div className={styles.settingsMenu} role="menu">
+                    <button type="button" role="menuitem" onClick={() => navigate("generations")}>Generations</button>
+                    <button type="button" role="menuitem" onClick={() => navigate("schemas")}>Schemas</button>
+                    <button type="button" role="menuitem" onClick={() => navigate("aiSettings")}>AI</button>
+                  </div>
+                ) : null}
               </div>
             </div>
           </>
@@ -1433,6 +1453,12 @@ function App() {
           onSelectionChange={setExportDefinitionSelection}
           onUndoRedoChange={setExportDefinitionUndoRedo}
         />
+      ) : page === "aiSettings" ? (
+        <AISettingsPage
+          dirty={aiSettingsDirty}
+          onDirtyChange={setAISettingsDirty}
+          onStatus={setStatus}
+        />
       ) : pluginSession ? (
         <PluginEditingPage
           session={pluginSession}
@@ -1457,13 +1483,15 @@ function App() {
         dirty={dirty}
         saving={saving}
         selection={selection}
-        pluginActions={[...pluginEntryPoints("table_toolbar"), ...pluginEntryPoints("record_action")]}
+        pluginActions={pluginEntryPoints("table_toolbar")}
+        rowPluginActions={pluginEntryPoints("record_action")}
         onSetTableViewMode={setTableViewMode}
         onAddRow={addRow}
         onDeleteSelectedRow={deleteSelectedRow}
         onCommit={commit}
         onSwitchMode={switchMode}
         onOpenPlugin={openPlugin}
+        onOpenRowPlugin={openRowPlugin}
         onBinaryUpload={uploadBinaryAsset}
         onDirtyChange={setDirty}
         onSelectionChange={setSelection}

@@ -37,7 +37,7 @@ Schema editing is also not embedded in the table record grid. Users navigate to 
 - Return from generation metadata editing without losing the current table editing context.
 - Return from schema editing without losing the current table editing context.
 - Choose whether the grid shows only the active edit generation or includes previous generations that participate in output.
-- See which generation each visible record comes from.
+- Understand previous-generation context without adding system metadata columns to the ordinary grid.
 - Edit records only in the active edit generation.
 - See previous-generation records as read-only context when previous generations are included.
 - See when an older record with the same primary key is overridden by a newer selected generation.
@@ -137,9 +137,13 @@ Schema editing is also not embedded in the table record grid. Users navigate to 
 - Tables with `ui.table_list_visibility: plugin_only` are hidden from the ordinary table list but remain available to plugin scopes, validation, export, references, schema editing, diagnostics, and explicit repair tooling.
 - Tables with `ui.table_list_visibility: hidden` are hidden from ordinary data navigation and should be surfaced only through explicit tooling, schema editing, diagnostics, or plugin scopes that declare them.
 - If a hidden or plugin-only table has a broken `ui.preferred_plugin` or no valid plugin entry point for normal editing, the UI should show a configuration diagnostic in a reachable place such as schema diagnostics or plugin discovery diagnostics.
-- The table top bar may contain compact plugin actions declared with `entry_points.placement: table_toolbar`, `record_action`, or `group_action`.
-- A `record_action` plugin action is enabled only when exactly one editable or readonly context record row is selected as the entry record, or when invoked from one specific row's action menu.
+- The table top bar may contain compact plugin actions declared with `entry_points.placement: table_toolbar`. It may also contain a `group_action` launcher when the action opens a grouping chooser.
+- A `record_action` plugin action appears in the table grid as a compact row action column immediately after the `extable` row-number/selection gutter. The action uses a pencil/edit icon button rather than a text button so users discover custom editors at the row they affect.
+- A `record_action` icon button is rendered only for rows where the plugin can open for that row's table and entry scope. It must be disabled or omitted for rows that cannot satisfy the plugin entry contract.
+- A `record_action` icon button must expose an accessible label and tooltip that include the plugin or entry-point label and enough row context to identify the target record, such as `Edit with Map editor`.
+- Activating a `record_action` icon opens the plugin for that specific row without requiring a separate top-toolbar selection step. If the selected table has more than one applicable record-action plugin, the row action cell may open a compact menu of pencil/edit actions instead of rendering multiple wide buttons.
 - A `group_action` plugin action opens or focuses a grouping `extable` selection surface where each row represents one distinct grouping key.
+- In a grouping chooser, group-row plugin actions follow the same placement rule as record actions: the open/edit affordance appears in an action column immediately after the row-number/selection gutter.
 - A `table_toolbar` plugin action opens a whole-table plugin immediately when its effective mode is `table`, or opens the grouping chooser when its effective mode is `group`.
 - The grouping selection surface is not canonical data editing; it is a derived chooser for opening a plugin scope.
 - Grouping rows should show the grouping value, optional display label, record count, and validation status summary when available.
@@ -161,7 +165,7 @@ Schema editing is also not embedded in the table record grid. Users navigate to 
 - The generation display mode control offers:
   - `active_only`: show and export only records from the active edit generation.
   - `include_previous`: show records from output-enabled generations older than or equal to the active edit generation, plus the active edit generation even if its own `output` flag is false.
-- When `include_previous` is enabled, the grid includes a read-only generation/source column.
+- When `include_previous` is enabled, generation/source provenance remains row metadata; the ordinary grid must not add visible `Generation` or `Status` system columns by default.
 - Rows whose `sourceGenerationId` is not the active edit generation are read-only.
 - Rows whose `sourceGenerationId` is the active edit generation remain editable, subject to schema validation.
 - A row from an older generation that is overridden by a newer visible row with the same primary key should remain visible but marked as overridden.
@@ -215,7 +219,7 @@ Schema editing is also not embedded in the table record grid. Users navigate to 
 - Previous generations are ordered old-to-new by configured generation ordering.
 - The grid row model includes `sourceGenerationId`, `sourceGenerationLabel`, `isActiveGeneration`, `isReadOnly`, `isOverridden`, and optional `overriddenByGenerationId`.
 - The server adds the generation/source metadata to each row returned for editing.
-- The generation/source column is system-managed and read-only.
+- Generation/source metadata is system-managed and read-only, but is not rendered as ordinary visible grid columns by default.
 - The UI uses `isReadOnly` from the API response to lock rows.
 - Any row whose `sourceGenerationId` is not the active edit generation must be readonly.
 - Only rows whose `sourceGenerationId` is the active edit generation can be edited, deleted, or committed.

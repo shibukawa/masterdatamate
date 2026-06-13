@@ -25,6 +25,8 @@ The Wails host is a packaging and host integration layer. Business rules, YAML p
 - Let the user open or configure a workspace root containing `masterdata`.
 - Reuse the same validation, persistence, generation, schema, and export services as the web server host.
 - Reuse the same AI assistant, provider configuration, and agent tool services as the web server host when AI features are enabled.
+- Reuse the same AI settings and OS-backed credential storage services as the web server host when AI features are enabled.
+- Use the shared Go keyring adapter for AI credential storage so desktop and local web behavior match.
 - Preserve SPA navigation and dirty-state behavior from [Single page application shell](../ui-flow/single-page-application-shell.md).
 - Provide desktop build artifacts for supported platforms.
 
@@ -33,6 +35,7 @@ The Wails host is a packaging and host integration layer. Business rules, YAML p
 - Wails frontend asset bundle.
 - Wails Go bindings for workspace and application services, or an internal localhost HTTP adapter matching [Web service host](web-service-host.md).
 - Wails bindings or an internal HTTP adapter for optional AI assistant runs and agent tool execution.
+- Wails bindings or an internal HTTP adapter for AI settings and credential storage.
 - Native file or directory selection for workspace root selection.
 - Shared Go service packages used by both desktop and web server hosts.
 
@@ -65,6 +68,7 @@ The Wails build pipeline should share as much frontend build configuration as pr
 - [Canonical YAML file layout](../data-model/canonical-yaml-file-layout.md)
 - [Schema validation engine](../component/schema-validation-engine.md)
 - [AI assistant service](../component/ai-assistant-service.md)
+- [AI secret storage service](../component/ai-secret-storage-service.md)
 - [Agent tool contract](../component/agent-tool-contract.md)
 
 ## Reads
@@ -74,6 +78,7 @@ The Wails build pipeline should share as much frontend build configuration as pr
 - Schema configuration files under the selected workspace root.
 - YAML table records and generation files under the selected workspace root.
 - AI provider configuration and host-specific secret references when AI features are enabled.
+- OS credential store entries for AI provider credentials through the shared Go keyring adapter when AI settings are enabled.
 
 ## Writes
 
@@ -82,6 +87,7 @@ The Wails build pipeline should share as much frontend build configuration as pr
 - Schema YAML files and generation metadata files when the corresponding services are implemented.
 - Export artifacts when export services are implemented.
 - AI assistant conversation state, pending proposals, and confirmed AI tool outputs when AI features are enabled.
+- AI provider profile metadata. Raw API keys are written only to the OS credential store through the secret storage service.
 - No frontend source or build output files at runtime.
 
 ## Related Requirements

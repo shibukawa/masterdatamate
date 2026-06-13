@@ -53,7 +53,7 @@ The server derives the visible generation set from generation metadata. In `acti
 
 Reference lookup uses a stricter export-facing generation set than the editing table view. Records from generations whose `output` flag is false are not returned as external reference candidates, even when the active generation is visible for editing. This prevents users from creating references to data that is excluded from export.
 
-Each returned row is an editing row, not a raw canonical record. The server adds generation metadata fields to every row so the frontend can render the generation/source column and enforce readonly behavior without inferring provenance from the primary key.
+Each returned row is an editing row, not a raw canonical record. The server adds generation metadata fields to every row so the frontend can enforce readonly behavior and explain provenance without inferring it from the primary key. These metadata fields are not injected as default visible `Generation` or `Status` columns in the ordinary table grid.
 
 Response:
 
