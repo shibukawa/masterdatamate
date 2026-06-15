@@ -1,31 +1,52 @@
 enemy:
-  - key: slime
-    name: Slime
-    data:
+    - key: slime
       name: Slime
-      hp: 24
-      attack: 8
-      defense: 5
-      speed: 6
-      magic: 2
-      luck: 5
-  - key: bat
-    name: Cave Bat
-    data:
+      data:
+        attack: 8
+        defense: 5
+        hp: 24
+        image:
+            extension: png
+            mime_type: image/png
+            original_name: slime.png
+            sha256: 90208b41849d38be043aee6f39fd11eb6e05e1fdc4adedb78668e4ca2408b701
+            size_bytes: 25646
+            updated_at: "2026-06-15T03:39:28.095674Z"
+        luck: 5
+        magic: 2
+        name: Slime
+        speed: 6
+    - key: bat
       name: Cave Bat
-      hp: 18
-      attack: 7
-      defense: 3
-      speed: 14
-      magic: 1
-      luck: 8
-  - key: golem
-    name: Stone Golem
-    data:
+      data:
+        attack: 7
+        defense: 3
+        hp: 18
+        image:
+            extension: png
+            mime_type: image/png
+            original_name: bat.png
+            sha256: b73b5e4e6d0a84ad810b216dd82f2fc81f59ead880c8f16ddff80a71e6a827b4
+            size_bytes: 27899
+            updated_at: "2026-06-15T03:39:34.951044Z"
+        luck: 8
+        magic: 1
+        name: Cave Bat
+        speed: 14
+    - key: golem
       name: Stone Golem
-      hp: 60
-      attack: 15
-      defense: 18
-      speed: 2
-      magic: 4
-      luck: 1
+      data:
+        attack: 15
+        defense: 18
+        hp: 60
+        image:
+            extension: png
+            mime_type: image/png
+            original_name: golem.png
+            sha256: c992a9f64ac21a7153bc69887517b41bbe12ad382e89a52b513d92fb6ad5aa15
+            size_bytes: 29913
+            updated_at: "2026-06-15T03:39:38.733242Z"
+        luck: 1
+        magic: 4
+        name: Stone Golem
+        speed: 2
