@@ -167,6 +167,13 @@
   grid-column: 1 / -1;
 }
 
+.limitGrid {
+  display: grid;
+  gap: 14px;
+  grid-column: 1 / -1;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 .field span,
 .wideField span {
   color: #4b5a6d;
@@ -182,6 +189,10 @@
   color: #243041;
   min-height: 34px;
   padding: 0 9px;
+}
+
+.field input[type="number"] {
+  max-width: 160px;
 }
 
 .wideField textarea {
@@ -234,6 +245,10 @@
   }
 
   .form {
+    grid-template-columns: 1fr;
+  }
+
+  .limitGrid {
     grid-template-columns: 1fr;
   }
 }

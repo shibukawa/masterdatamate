@@ -21,6 +21,8 @@ function normalizeProfile(profile = {}) {
     sandbox: profile.sandbox ?? "",
     supports_streaming: Boolean(profile.supports_streaming),
     supports_tool_calls: Boolean(profile.supports_tool_calls),
+    max_tool_rounds: Number(profile.max_tool_rounds || 50),
+    tool_loop_window: Number(profile.tool_loop_window || 10),
     local_network_allowed: Boolean(profile.local_network_allowed),
     requires_api_key: Boolean(profile.requires_api_key),
     has_api_key: Boolean(profile.has_api_key),
@@ -446,6 +448,28 @@ export function AISettingsPage({ dirty, onDirtyChange, onStatus }) {
                     Tool calls
                   </label>
                 </div>
+              </div>
+              <div className={styles.limitGrid}>
+                <label className={styles.field}>
+                  <span>Max tool rounds</span>
+                  <input
+                    type="number"
+                    min="1"
+                    max="500"
+                    value={selectedProfile.max_tool_rounds}
+                    onChange={(event) => updateProfile(selectedProfile.id, { max_tool_rounds: Number(event.target.value) })}
+                  />
+                </label>
+                <label className={styles.field}>
+                  <span>Tool loop window</span>
+                  <input
+                    type="number"
+                    min="1"
+                    max="100"
+                    value={selectedProfile.tool_loop_window}
+                    onChange={(event) => updateProfile(selectedProfile.id, { tool_loop_window: Number(event.target.value) })}
+                  />
+                </label>
               </div>
               <label className={styles.wideField}>
                 <span>Notes</span>

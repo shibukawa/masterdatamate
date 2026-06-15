@@ -221,6 +221,55 @@ function cleanRows(rows) {
   });
 }
 
+function comparableKey(value) {
+  const stored = storedValue(value);
+  if (stored && typeof stored === "object" && !Array.isArray(stored)) {
+    return JSON.stringify(Object.fromEntries(Object.keys(stored).sort().map((key) => [key, storedValue(stored[key])])));
+  }
+  return String(stored ?? "");
+}
+
+function keyComparableFromRow(row, schema) {
+  const cleaned = {};
+  for (const field of schema.primary_key) cleaned[field] = storedValue(row?.[field]);
+  if (schema.primary_key.length === 1) return comparableKey(cleaned[schema.primary_key[0]]);
+  return comparableKey(cleaned);
+}
+
+function keyComparableFromValue(value, schema) {
+  if (schema.primary_key.length === 1 && (typeof value !== "object" || value === null || Array.isArray(value))) {
+    return comparableKey(value);
+  }
+  const source = value && typeof value === "object" ? value : {};
+  const cleaned = {};
+  for (const field of schema.primary_key) cleaned[field] = storedValue(source[field]);
+  return comparableKey(cleaned);
+}
+
+function normalizedText(value) {
+  return String(storedValue(value) ?? "").trim().toLowerCase();
+}
+
+function displayComparableFromRow(row, schema) {
+  const displayFields = ["name", "title", "label", "display_name", "business_name"];
+  for (const fieldName of displayFields) {
+    if (schema.primary_key.includes(fieldName)) continue;
+    if (!schema.fields.some((field) => field.system_name === fieldName)) continue;
+    const normalized = normalizedText(row?.[fieldName]);
+    if (normalized) return normalized;
+  }
+  return "";
+}
+
+function normalizeStageOperation(operation) {
+  const op = operation?.op ?? operation?.type ?? operation?.operation;
+  return {
+    op: String(op ?? "").toLowerCase(),
+    key: operation?.key ?? operation?.primaryKey ?? operation?.primary_key,
+    values: operation?.values ?? operation?.fields ?? operation?.changes ?? operation?.record ?? {}
+  };
+}
+
 export const ExtableEditor = forwardRef(function ExtableEditor({
   schema,
   rows,
@@ -369,8 +418,82 @@ export const ExtableEditor = forwardRef(function ExtableEditor({
     },
     hasPendingChanges() {
       return extableRef.current?.hasPendingChanges() ?? false;
+    },
+    stageTableChanges(operations = []) {
+      const table = extableRef.current;
+      if (!table || !Array.isArray(operations)) {
+        return { staged: false, accepted: [], rejected: [{ index: -1, reason: "operations must be an array" }] };
+      }
+      const accepted = [];
+      const rejected = [];
+      const currentRows = table.getTableData?.() ?? data;
+      const keyToRow = new Map();
+      const displayToRow = new Map();
+      currentRows.forEach((row, index) => {
+        const target = { row, index, id: row.id };
+        keyToRow.set(keyComparableFromRow(row, schema), target);
+        const displayComparable = displayComparableFromRow(row, schema);
+        if (displayComparable && !displayToRow.has(displayComparable)) displayToRow.set(displayComparable, target);
+      });
+      for (const [index, rawOperation] of operations.entries()) {
+        const operation = normalizeStageOperation(rawOperation);
+        if (!["insert", "update", "delete"].includes(operation.op)) {
+          rejected.push({ index, reason: `unsupported operation: ${operation.op || "missing"}` });
+          continue;
+        }
+        if (operation.op === "insert") {
+          const row = {
+            ...blankRow(schema, activeGenerationId),
+            ...(operation.values && typeof operation.values === "object" ? operation.values : {})
+          };
+          const comparable = keyComparableFromRow(row, schema);
+          if (!comparable || keyToRow.has(comparable)) {
+            rejected.push({ index, reason: "insert primary key is missing or already exists" });
+            continue;
+          }
+          const inserted = table.insertRow(row);
+          keyToRow.set(comparable, { row, index: currentRows.length, id: inserted?.id ?? row.id });
+          currentRows.push(row);
+          accepted.push({ index, op: "insert", key: rowKey(row), changedFields: Object.keys(operation.values ?? {}) });
+          continue;
+        }
+        const comparable = keyComparableFromValue(operation.key, schema);
+        const target = keyToRow.get(comparable) ?? displayToRow.get(normalizedText(operation.key));
+        if (!target) {
+          rejected.push({ index, reason: "target primary key was not found" });
+          continue;
+        }
+        if (target.row?.isReadOnly) {
+          rejected.push({ index, reason: "target row is readonly" });
+          continue;
+        }
+        if (operation.op === "delete") {
+          if (table.deleteRow(target.id ?? target.index)) {
+            accepted.push({ index, op: "delete", key: operation.key, changedFields: [] });
+            keyToRow.delete(comparable);
+          } else {
+            rejected.push({ index, reason: "editor rejected delete" });
+          }
+          continue;
+        }
+        const values = operation.values && typeof operation.values === "object" ? operation.values : {};
+        const changedFields = [];
+        for (const [fieldName, value] of Object.entries(values)) {
+          if (!schema.fields.some((field) => field.system_name === fieldName)) continue;
+          if (schema.primary_key.includes(fieldName)) continue;
+          table.setCellValue?.(target.id ?? target.index, fieldName, value);
+          changedFields.push(fieldName);
+        }
+        if (!changedFields.length) {
+          rejected.push({ index, reason: "update has no editable changed fields" });
+          continue;
+        }
+        accepted.push({ index, op: "update", key: operation.key, changedFields });
+      }
+      if (accepted.length) onDirtyChange(true);
+      return { staged: accepted.length > 0, accepted, rejected };
     }
-  }), [data, schema]);
+  }), [activeGenerationId, data, onDirtyChange, schema]);
 
   return (
     <div

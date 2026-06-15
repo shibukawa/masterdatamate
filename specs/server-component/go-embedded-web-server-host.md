@@ -32,7 +32,7 @@ This host replaces the development-only split between the Vite dev server and th
 - Optionally provide AI assistant HTTP routes, provider configuration, and agent tools through shared Go services when AI features are enabled.
 - Provide OS-backed AI credential storage through shared services when AI settings are enabled.
 - Use the shared Go keyring adapter for AI credential storage rather than host-specific ad hoc credential code.
-- Manage local AI provider child processes when a built-in profile requires it, including `fm serve` over a Unix domain socket.
+- Verify user-managed local AI provider endpoints such as `fm serve` without owning their child process lifecycle.
 - Package web delivery as one executable plus user/project data, not as separate frontend and backend processes.
 
 ## Interfaces
@@ -40,7 +40,7 @@ This host replaces the development-only split between the Vite dev server and th
 - HTTP API routes from [Web service host](web-service-host.md).
 - Optional AI assistant and agent tool routes from [AI assistant service](../component/ai-assistant-service.md).
 - Optional AI settings and credential storage routes from [AI settings screen](../ui-screen/ai-settings-screen.md) and [AI secret storage service](../component/ai-secret-storage-service.md).
-- Optional managed local provider lifecycle for `fm serve`, including a host-owned Unix domain socket endpoint used by the OpenAI-compatible adapter.
+- Optional local provider health checks for user-managed `fm serve` endpoints used by the OpenAI-compatible adapter.
 - Embedded SPA static file server.
 - Command-line server launcher.
 - Command-line export runner.
@@ -75,15 +75,14 @@ This host replaces the development-only split between the Vite dev server and th
 - The process exits non-zero when the workspace root cannot be resolved or when required `masterdata` paths are invalid.
 - The `export` subcommand resolves the workspace with the same rules but does not start the web server or require embedded frontend assets at runtime.
 
-## Managed Local AI Provider Rules
+## Local AI Provider Rules
 
-- The Go host may start `fm serve` automatically for the built-in `apple-fm-serve` profile when AI is enabled, `fm` is available, and no user-managed endpoint is configured.
-- Managed `fm serve` should bind to a Unix domain socket generated under the host runtime temp directory when supported by the installed `fm` command.
-- Managed `fm serve` must not bind to non-loopback TCP interfaces. Loopback TCP is allowed only as an explicit fallback or user-managed configuration.
-- The Go host owns the child process lifecycle: startup, readiness probing, cancellation, process termination, stderr capture, and stale socket cleanup.
-- The generated UDS path is host-local runtime state. It may be used internally by the provider adapter but must not be exposed as a browser-editable setting.
-- If managed startup fails, the AI profile health check reports a clear diagnostic and does not silently fall back to a hosted provider.
-- Managed local provider processes must not be started for batch export commands that do not use AI features.
+- The Go host does not start `fm serve` automatically for the initial AI assistant implementation. The `apple-fm-serve` profile assumes a user-managed local server is already reachable.
+- The default `apple-fm-serve` endpoint is loopback-only, such as `http://127.0.0.1:1976`, unless the user configures another allowed local endpoint.
+- The host health check probes the configured endpoint and reports whether `/health`, model listing, and chat/tool-call capabilities are available.
+- The host must not bind `fm serve` to non-loopback TCP interfaces or expose a browser-editable filesystem/socket path.
+- If the configured local provider is not reachable, the AI profile health check reports a clear diagnostic and does not silently fall back to a hosted provider.
+- Batch export commands do not check or start AI provider processes unless an AI feature explicitly needs a provider.
 
 ## Build Pipeline
 

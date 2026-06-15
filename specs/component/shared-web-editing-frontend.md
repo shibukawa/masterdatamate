@@ -51,11 +51,11 @@ The shared web editing frontend is the reusable React + Vite UI core for editing
 - Editor plugin assets are loaded through the [HTML editor plugin runtime](html-editor-plugin-runtime.md); source projects such as React/Vue/Vite plugins are built before runtime and are not executed by the shared frontend.
 - The shared frontend renders the [In-app AI assistant panel](../ui-screen/in-app-ai-assistant-panel.md) with CopilotKit's popup-style assistant surface, exposed through a floating action button that can be opened from every primary screen.
 - The application shell should provide the CopilotKit provider at the root and connect it to the host's Copilot Runtime-compatible endpoint.
-- The AI panel must send scoped context through the host adapter rather than reading canonical YAML files directly.
+- The AI panel must expose scoped browser context through frontend tools rather than sending a full UI snapshot with every run or reading canonical YAML files directly.
 - The AI panel must render proposed changes and side-effecting tool confirmations through host-owned UI controls.
 - The AI panel must not bypass the same validation, save confirmation, generation, schema, and export rules used by ordinary screens.
 - CopilotKit and AG-UI events may drive assistant timeline, tool progress, state updates, frontend tools, and confirmation states, but generated UI must not replace host-owned save, import, schema, generation, or export controls.
-- Browser-only AI actions such as opening a file picker, focusing a row, switching visible panels, or highlighting proposed changes may be implemented as CopilotKit frontend tools.
+- Browser-owned AI actions such as returning current editor context, staging draft table changes, opening a file picker, focusing a row, switching visible panels, or highlighting proposed changes may be implemented as CopilotKit frontend tools.
 - Workspace reads, validation, YAML writes, generation changes, import commits, binary asset attachment, and export execution must remain server tools backed by host services.
 - Opening a plugin surface must use the same dirty-state confirmation flow as navigation away from an `extable` commit-mode surface.
 - Plugin edits must participate in the same pending-edit, validation, confirmation, save, revert, and reload lifecycle as table grid edits.

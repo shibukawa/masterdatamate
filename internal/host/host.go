@@ -18,6 +18,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"gopkg.in/yaml.v3"
@@ -39,6 +40,8 @@ type server struct {
 	binaryRoot     string
 	exports        map[string]exportArtifact
 	static         fs.FS
+	aiFrontendMu   sync.Mutex
+	aiFrontendWait map[string]chan aiFrontendToolResult
 }
 
 type exportArtifact struct {
@@ -112,6 +115,7 @@ func New(root string, embeddedDist fs.FS) (*server, error) {
 		binaryRoot:     filepath.Join(absRoot, "masterdata", "binaries"),
 		exports:        map[string]exportArtifact{},
 		static:         static,
+		aiFrontendWait: map[string]chan aiFrontendToolResult{},
 	}
 	if err := s.validateWorkspace(); err != nil {
 		return nil, err
@@ -130,6 +134,7 @@ func NewData(root string) (*server, error) {
 		generationRoot: filepath.Join(absRoot, "masterdata", "generations"),
 		binaryRoot:     filepath.Join(absRoot, "masterdata", "binaries"),
 		exports:        map[string]exportArtifact{},
+		aiFrontendWait: map[string]chan aiFrontendToolResult{},
 	}
 	if err := s.validateWorkspace(); err != nil {
 		return nil, err
@@ -193,6 +198,14 @@ func (s *server) handle(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *server) handleAPI(w http.ResponseWriter, r *http.Request) {
+	if r.URL.Path == "/api/ai/runs/stream" {
+		s.handleAIRunStream(w, r)
+		return
+	}
+	if r.URL.Path == "/api/ai/frontend-tool-results" {
+		s.handleAIFrontendToolResult(w, r)
+		return
+	}
 	status, payload, contentType, data, err := s.dispatchAPI(r)
 	if err != nil {
 		var ae appError

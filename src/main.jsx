@@ -1,9 +1,10 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import "@extable/core/style.css";
 import "./global.css";
 import styles from "./App.module.css";
 import { api, uploadBinaryAsset as uploadBinaryAssetFile } from "./api.js";
+import { AIAssistantPanel } from "./AIAssistantPanel.jsx";
 import { AISettingsPage } from "./AISettingsPage.jsx";
 import { displayRows, normalizeRows, storedValue } from "./ExtableEditor.jsx";
 import { GenerationEditingPage } from "./GenerationEditingPage.jsx";
@@ -1247,6 +1248,112 @@ function App() {
     setSaving(false);
   }
 
+  const aiContext = useMemo(() => {
+    const editorRows = editorRef.current?.getRows?.();
+    const visibleRows = (editorRows?.length ? editorRows : rows).slice(0, 30).map((row) => {
+      const copy = { ...row };
+      delete copy._keyComparable;
+      return copy;
+    });
+    return {
+      route: window.location.pathname,
+      page,
+      selectedTable,
+      selectedRecordKeys: selection?.selectedRowKeys ?? (selection?.activeRowKey ? [selection.activeRowKey] : []),
+      activeGeneration: editGenerationId,
+      tableViewMode,
+      editorMode: mode,
+      dirty: Boolean(dirty),
+      schema: schema ? {
+        table_id: schema.table_id,
+        business_name: schema.business_name,
+        primary_key: schema.primary_key,
+        fields: (schema.fields ?? []).map((field) => ({
+          system_name: field.system_name,
+          business_name: field.business_name,
+          type: field.type,
+          required: Boolean(field.required),
+          reference: field.reference ?? null
+        }))
+      } : null,
+      visibleRows,
+      rowCountInView: rows.length,
+      diagnostics: (diagnostics ?? []).slice(0, 30)
+    };
+  }, [page, selectedTable, selection, editGenerationId, tableViewMode, mode, dirty, schema, rows, diagnostics]);
+
+  function comparableAIIdentifier(value) {
+    return String(value ?? "").trim().toLowerCase().replace(/[\s_-]+/g, "");
+  }
+
+  function matchesCurrentTableIdentifier(value) {
+    const normalized = comparableAIIdentifier(value);
+    if (!normalized) return true;
+    const current = comparableAIIdentifier(selectedTable);
+    const business = comparableAIIdentifier(schema?.business_name);
+    return [
+      current,
+      `${current}s`,
+      business,
+      "active_table",
+      "activetable",
+      "current_table",
+      "currenttable",
+      "selected_table",
+      "selectedtable"
+    ].includes(normalized);
+  }
+
+  function matchesCurrentGenerationIdentifier(value) {
+    const normalized = comparableAIIdentifier(value);
+    if (!normalized) return true;
+    const current = comparableAIIdentifier(editGenerationId);
+    return [
+      current,
+      "active_generation",
+      "activegeneration",
+      "active_table_generation",
+      "activetablegeneration",
+      "current_generation",
+      "currentgeneration",
+      "selected_generation",
+      "selectedgeneration",
+      "current"
+    ].includes(normalized);
+  }
+
+  function stageAIChanges(changeSet) {
+    if (!schema || !editorRef.current) {
+      const result = { staged: false, accepted: [], rejected: [{ index: -1, reason: "No active table editor." }] };
+      setStatus("AI changes were not staged because no table is open.");
+      return result;
+    }
+    const tableId = changeSet.tableId ?? changeSet.table_id;
+    if (!matchesCurrentTableIdentifier(tableId)) {
+      const result = { staged: false, accepted: [], rejected: [{ index: -1, reason: "Change set targets a different table." }] };
+      setStatus(`AI changes target ${tableId}, but ${selectedTable} is open.`);
+      return result;
+    }
+    const generationId = changeSet.generationId ?? changeSet.generation_id;
+    if (!matchesCurrentGenerationIdentifier(generationId)) {
+      const result = { staged: false, accepted: [], rejected: [{ index: -1, reason: "Change set targets a different generation." }] };
+      setStatus(`AI changes target ${generationId}, but ${editGenerationId} is open.`);
+      return result;
+    }
+    let operations = changeSet.operations ?? [];
+    if (!Array.isArray(operations) && typeof changeSet.operations_json === "string") {
+      try {
+        operations = JSON.parse(changeSet.operations_json);
+      } catch {
+        operations = [];
+      }
+    }
+    const result = editorRef.current.stageTableChanges?.(operations) ?? { staged: false, accepted: [], rejected: [{ index: -1, reason: "Editor cannot stage AI changes." }] };
+    if (result.accepted?.length) setDirty(true);
+    setStatus(`AI staged ${result.accepted?.length ?? 0} operation(s); ${result.rejected?.length ?? 0} rejected.`);
+    return result;
+  }
+
   return (
     <main className={styles.appShell}>
       <aside className={styles.sidebar}>
@@ -1497,6 +1604,7 @@ function App() {
         onSelectionChange={setSelection}
       />
       )}
+      <AIAssistantPanel getCurrentContext={() => aiContext} onStatus={setStatus} onStageTableChanges={stageAIChanges} />
     </main>
   );
 }

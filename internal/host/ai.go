@@ -18,11 +18,13 @@ import (
 )
 
 const (
-	aiSettingsFileName    = "ai_settings.yaml"
-	aiCredentialService   = "MasterDataMate"
-	maskedCredentialValue = "********"
-	appleFMServeProfileID = "apple-fm-serve"
-	codexCLIProfileID     = "local-codex"
+	aiSettingsFileName      = "ai_settings.yaml"
+	aiCredentialService     = "MasterDataMate"
+	maskedCredentialValue   = "********"
+	appleFMServeProfileID   = "apple-fm-serve"
+	codexCLIProfileID       = "local-codex"
+	defaultAIToolRounds     = 50
+	defaultAIToolLoopWindow = 10
 )
 
 type aiSettings struct {
@@ -47,6 +49,8 @@ type aiProfile struct {
 	Temperature         *float64 `json:"temperature,omitempty" yaml:"temperature,omitempty"`
 	MaxOutputTokens     int      `json:"max_output_tokens,omitempty" yaml:"max_output_tokens,omitempty"`
 	RequestTimeoutMS    int      `json:"request_timeout_ms,omitempty" yaml:"request_timeout_ms,omitempty"`
+	MaxToolRounds       int      `json:"max_tool_rounds,omitempty" yaml:"max_tool_rounds,omitempty"`
+	ToolLoopWindow      int      `json:"tool_loop_window,omitempty" yaml:"tool_loop_window,omitempty"`
 	SupportsStreaming   bool     `json:"supports_streaming" yaml:"supports_streaming"`
 	SupportsToolCalls   bool     `json:"supports_tool_calls" yaml:"supports_tool_calls"`
 	LocalNetworkAllowed bool     `json:"local_network_allowed,omitempty" yaml:"local_network_allowed,omitempty"`
@@ -159,6 +163,25 @@ func (s *keyringCredentialStore) Has(profileID string) (bool, error) {
 }
 
 func (s *server) dispatchAIAPI(r *http.Request, parts []string) (int, any, string, []byte, error) {
+	if len(parts) >= 3 && parts[2] == "sessions" {
+		return s.dispatchAISessionAPI(r, parts)
+	}
+	if len(parts) == 3 && parts[2] == "runs" && r.Method == http.MethodPost {
+		var body aiRunRequest
+		if err := readJSON(r, &body); err != nil {
+			return 0, nil, "", nil, err
+		}
+		payload, err := s.runManagedAIChat(r.Context(), body)
+		return 200, payload, "", nil, err
+	}
+	if len(parts) == 4 && parts[2] == "tools" && r.Method == http.MethodPost {
+		var body map[string]any
+		if err := readJSON(r, &body); err != nil {
+			return 0, nil, "", nil, err
+		}
+		payload, err := s.executeAITool(parts[3], body)
+		return 200, payload, "", nil, err
+	}
 	if len(parts) == 3 && parts[2] == "settings" {
 		switch r.Method {
 		case http.MethodGet:
@@ -202,6 +225,133 @@ func (s *server) dispatchAIAPI(r *http.Request, parts []string) (int, any, strin
 		return 200, payload, "", nil, err
 	}
 	return 404, nil, "", nil, appError{404, "API route not found"}
+}
+
+func (s *server) handleAIRunStream(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		writeJSON(w, http.StatusMethodNotAllowed, map[string]any{"error": "Method not allowed"})
+		return
+	}
+	var body aiRunRequest
+	if err := readJSON(r, &body); err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]any{"error": err.Error()})
+		return
+	}
+	w.Header().Set("Content-Type", "application/x-ndjson")
+	w.Header().Set("Cache-Control", "no-store")
+	w.WriteHeader(http.StatusOK)
+	flusher, _ := w.(http.Flusher)
+	writeEvent := func(event map[string]any) {
+		data, err := json.Marshal(event)
+		if err != nil {
+			return
+		}
+		_, _ = w.Write(append(data, '\n'))
+		if flusher != nil {
+			flusher.Flush()
+		}
+	}
+	body.DebugSink = func(event map[string]any) {
+		writeEvent(map[string]any{"kind": "debug_event", "event": event})
+	}
+	body.FrontendToolSink = func(ctx context.Context, call aiFrontendToolCall) (map[string]any, error) {
+		resultChan := s.registerAIFrontendToolRequest(call.RequestID)
+		defer s.unregisterAIFrontendToolRequest(call.RequestID)
+		writeEvent(map[string]any{"kind": "frontend_tool_request", "request": call})
+		select {
+		case result := <-resultChan:
+			if result.Error != "" {
+				return map[string]any{"success": false, "status": "error", "error": result.Error}, nil
+			}
+			if result.Result == nil {
+				return map[string]any{"success": false, "status": "error", "error": "Frontend tool returned no result."}, nil
+			}
+			return result.Result, nil
+		case <-ctx.Done():
+			if call.Name == "get_current_context" && len(body.Context) > 0 {
+				return map[string]any{"success": true, "status": "fallback", "summary": "Used request-time frontend context fallback.", "context": body.Context}, nil
+			}
+			if call.Name == "stage_table_changes" {
+				return map[string]any{"success": false, "status": "pending_frontend_staging", "error": ctx.Err().Error(), "change_set": call.Arguments}, nil
+			}
+			return map[string]any{"success": false, "status": "blocked", "error": ctx.Err().Error()}, nil
+		case <-time.After(5 * time.Second):
+			if call.Name == "get_current_context" && len(body.Context) > 0 {
+				return map[string]any{"success": true, "status": "fallback", "summary": "Used request-time frontend context fallback.", "context": body.Context}, nil
+			}
+			if call.Name == "stage_table_changes" {
+				return map[string]any{"success": false, "status": "pending_frontend_staging", "error": "Timed out waiting for frontend tool result.", "change_set": call.Arguments}, nil
+			}
+			return map[string]any{"success": false, "status": "blocked", "error": "Timed out waiting for frontend tool result."}, nil
+		}
+	}
+	payload, err := s.runManagedAIChat(r.Context(), body)
+	if err != nil {
+		writeEvent(map[string]any{"kind": "error", "error": err.Error(), "payload": payload})
+		return
+	}
+	writeEvent(map[string]any{"kind": "final", "payload": payload})
+}
+
+func (s *server) handleAIFrontendToolResult(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		writeJSON(w, http.StatusMethodNotAllowed, map[string]any{"error": "Method not allowed"})
+		return
+	}
+	var body struct {
+		RequestID string         `json:"request_id"`
+		Result    map[string]any `json:"result"`
+		Error     string         `json:"error"`
+	}
+	if err := readJSON(r, &body); err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]any{"error": err.Error()})
+		return
+	}
+	if strings.TrimSpace(body.RequestID) == "" {
+		writeJSON(w, http.StatusBadRequest, map[string]any{"error": "request_id is required"})
+		return
+	}
+	if ok := s.deliverAIFrontendToolResult(body.RequestID, aiFrontendToolResult{Result: body.Result, Error: body.Error}); !ok {
+		writeJSON(w, http.StatusOK, map[string]any{
+			"delivered": false,
+			"status":    "expired",
+			"summary":   "Frontend tool request was already completed or timed out.",
+		})
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"delivered": true})
+}
+
+func (s *server) registerAIFrontendToolRequest(requestID string) <-chan aiFrontendToolResult {
+	resultChan := make(chan aiFrontendToolResult, 1)
+	s.aiFrontendMu.Lock()
+	if s.aiFrontendWait == nil {
+		s.aiFrontendWait = map[string]chan aiFrontendToolResult{}
+	}
+	s.aiFrontendWait[requestID] = resultChan
+	s.aiFrontendMu.Unlock()
+	return resultChan
+}
+
+func (s *server) unregisterAIFrontendToolRequest(requestID string) {
+	s.aiFrontendMu.Lock()
+	delete(s.aiFrontendWait, requestID)
+	s.aiFrontendMu.Unlock()
+}
+
+func (s *server) deliverAIFrontendToolResult(requestID string, result aiFrontendToolResult) bool {
+	s.aiFrontendMu.Lock()
+	resultChan := s.aiFrontendWait[requestID]
+	s.aiFrontendMu.Unlock()
+	if resultChan == nil {
+		return false
+	}
+	select {
+	case resultChan <- result:
+		return true
+	default:
+		return false
+	}
 }
 
 func (s *server) aiSettingsPath() string {
@@ -303,6 +453,7 @@ func normalizeAISettings(settings aiSettings) aiSettings {
 		if profile.APIKeyRef == "" && profile.RequiresAPIKey {
 			profile.APIKeyRef = credentialKey(profile.ID)
 		}
+		profile = normalizeAIToolLimits(profile)
 		profile = normalizeBuiltinAIProfile(profile)
 		if !isAIProfileVisible(profile) {
 			continue
@@ -326,6 +477,31 @@ func normalizeAISettings(settings aiSettings) aiSettings {
 		settings.ActiveProfile = settings.Profiles[0].ID
 	}
 	return settings
+}
+
+func normalizeAIToolLimits(profile aiProfile) aiProfile {
+	if profile.MaxToolRounds <= 0 {
+		profile.MaxToolRounds = defaultAIToolRounds
+	}
+	if profile.MaxToolRounds < 1 {
+		profile.MaxToolRounds = 1
+	}
+	if profile.MaxToolRounds > 500 {
+		profile.MaxToolRounds = 500
+	}
+	if profile.ToolLoopWindow <= 0 {
+		profile.ToolLoopWindow = defaultAIToolLoopWindow
+	}
+	if profile.ToolLoopWindow < 1 {
+		profile.ToolLoopWindow = 1
+	}
+	if profile.ToolLoopWindow > profile.MaxToolRounds {
+		profile.ToolLoopWindow = profile.MaxToolRounds
+	}
+	if profile.ToolLoopWindow > 100 {
+		profile.ToolLoopWindow = 100
+	}
+	return profile
 }
 
 func applyAIDefaults(settings aiSettings) aiSettings {
@@ -488,7 +664,7 @@ func attachProfileHealthHints(settings aiSettings) aiSettings {
 		case appleFMServeProfileID:
 			if available["fm"].Available {
 				profile.HealthStatus = "available"
-				profile.HealthMessage = "fm command is available. Start fm serve if the server is not already running."
+				profile.HealthMessage = "fm command is available. Start fm serve before running chat."
 			} else {
 				profile.HealthStatus = "unavailable"
 				profile.HealthMessage = available["fm"].Message
