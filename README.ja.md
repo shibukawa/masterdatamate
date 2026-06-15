@@ -15,6 +15,7 @@ MasterDataMate は、Git で管理する表形式のマスタデータ向けの
 - プロジェクトローカルの `masterdata/` ワークスペースを読み書きします。
 - 画像付きの敵ステータス調整やグリッド形式のマップ編集など、ドメイン固有の作業向けにプロジェクトローカルのカスタムエディタを開けます。
 - 編集中のデータについて、画面内の AI アシスタントに質問しながら確認や編集を進められます。
+- 検証済みのマスタデータから、Pongo2 テンプレートでソースコードや任意のテキスト成果物を生成できます。
 - フロントエンドを同梱した単一の Go Web サーバーバイナリをビルドできます。
 - Go のサービス層を共有する Wails デスクトップホストをビルドできます。
 - ローカルビルド済み、または事前ビルド済みネイティブバイナリを npm ラッパーから起動できます。
@@ -96,6 +97,32 @@ npm run build:go
 
 Go サーバーは `go:embed` で `dist` を埋め込み、`/api/*`、
 Vite の静的アセット、SPA ルート用の `index.html` フォールバックを提供します。
+
+## テンプレート生成
+
+`masterdatamate generate` は、プロジェクトで定義した Pongo2 テンプレートを使って、
+ソースコードやその他のテキスト成果物を生成します。生成ジョブは
+`masterdata/generate_definitions.yaml` に定義し、長めのテンプレートは
+`masterdata/generate_templates/` 配下に置けます。
+
+[examples/templates](./examples/templates) のサンプルワークスペースでは、
+天気サービス用のマスタデータから SQL DDL と Go ソースコードを生成します。
+[生成定義](./examples/templates/masterdata/generate_definitions.yaml) と、
+[go/types.go.pongo2](./examples/templates/masterdata/generate_templates/go/types.go.pongo2)、
+[sql/schema.sql.pongo2](./examples/templates/masterdata/generate_templates/sql/schema.sql.pongo2)
+などのテンプレート例を参照できます。
+
+ファイルを書かずにサンプルを検証します。
+
+```bash
+masterdatamate generate --workspace examples/templates --check-only --json
+```
+
+サンプルの `generated/` ディレクトリへ設定済みファイルを生成します。
+
+```bash
+masterdatamate generate --workspace examples/templates --force-overwrite
+```
 
 ## npm ラッパー
 

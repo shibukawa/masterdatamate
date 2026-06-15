@@ -14,6 +14,7 @@ and can export merged data through backend-specific adapters.
 - Load and save project-local `masterdata/` workspaces.
 - Open project-local custom editors for domain-specific workflows, such as image-backed enemy tuning or grid-based map editing.
 - Ask the in-app AI assistant questions about the current data and use it while reviewing or editing tables.
+- Generate source files or other text artifacts from validated master data with Pongo2 templates.
 - Build a single Go web server binary with embedded frontend assets.
 - Build a Wails desktop host that shares the Go service layer.
 - Use an npm wrapper for locally built or prebuilt native binaries.
@@ -95,6 +96,33 @@ npm run build:go
 ```
 
 The Go server embeds `dist` with `go:embed`, serves `/api/*`, serves static Vite assets, and falls back to `index.html` for SPA routes.
+
+## Template Generation
+
+`masterdatamate generate` renders project-defined Pongo2 templates into source
+files or other generated text artifacts. Template jobs live in
+`masterdata/generate_definitions.yaml`, and larger templates can be kept under
+`masterdata/generate_templates/`.
+
+The sample workspace at [examples/templates](./examples/templates) generates
+SQL DDL and Go source files from weather-service master data. See its
+[template definitions](./examples/templates/masterdata/generate_definitions.yaml)
+and sample templates such as
+[go/types.go.pongo2](./examples/templates/masterdata/generate_templates/go/types.go.pongo2)
+and
+[sql/schema.sql.pongo2](./examples/templates/masterdata/generate_templates/sql/schema.sql.pongo2).
+
+Validate the sample without writing files:
+
+```bash
+masterdatamate generate --workspace examples/templates --check-only --json
+```
+
+Generate the configured files into the sample's `generated/` directory:
+
+```bash
+masterdatamate generate --workspace examples/templates --force-overwrite
+```
 
 ## npm Wrapper
 
