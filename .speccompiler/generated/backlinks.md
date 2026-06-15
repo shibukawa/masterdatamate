@@ -29,6 +29,7 @@
 - links_to from AI assistant service
 - links_to from AI assistant service
 - links_to from AI assistant service
+- links_to from AI assistant service
 - depends_on from AI assistant service
 - depends_on from Shared web editing frontend
 - relates_to from AI provider configuration model
@@ -167,8 +168,6 @@
 - uses_component from Go CLI export runner
 - links_to from Go CLI export runner
 - relates_to from Go CLI export runner
-- depends_on from Agent tool contract
-- depends_on from AI assistant service
 - links_to from Export backend adapters
 - depends_on from Export backend adapters
 - links_to from Generation merge and export flow
@@ -181,7 +180,6 @@
 
 ## Generation analysis flow (generation-analysis-flow)
 
-- depends_on from Agent tool contract
 - depends_on from Shared web editing frontend
 - reads from Canonical YAML file layout
 - relates_to from Canonical YAML file layout
@@ -192,7 +190,6 @@
 
 ## Generation deletion flow (generation-deletion-flow)
 
-- depends_on from Agent tool contract
 - depends_on from Shared web editing frontend
 - uses_component from Generation analysis flow
 - relates_to from Generation analysis flow
@@ -205,7 +202,6 @@
 
 ## Generation duplication flow (generation-duplication-flow)
 
-- depends_on from Agent tool contract
 - depends_on from Shared web editing frontend
 - reads from Canonical YAML file layout
 - relates_to from Canonical YAML file layout
@@ -219,8 +215,6 @@
 - uses_component from Go CLI export runner
 - relates_to from Go CLI export runner
 - relates_to from Go CLI generate runner
-- depends_on from Agent tool contract
-- depends_on from AI assistant service
 - links_to from Export backend adapters
 - relates_to from HTML editor plugin runtime
 - links_to from Pongo2 template generation adapter
@@ -244,7 +238,6 @@
 
 ## Generation persistent merge flow (generation-persistent-merge-flow)
 
-- depends_on from Agent tool contract
 - depends_on from Shared web editing frontend
 - uses_component from Generation analysis flow
 - relates_to from Generation analysis flow
@@ -262,6 +255,7 @@
 - links_to from AI assistant service
 - links_to from AI assistant service
 - depends_on from AI assistant service
+- links_to from AI provider configuration model
 - links_to from Web service host
 - links_to from In-app AI assistant panel
 - uses_component from In-app AI assistant panel
@@ -551,6 +545,7 @@
 
 - relates_to from Agent tool contract
 - links_to from AI assistant service
+- links_to from AI assistant service
 - depends_on from AI assistant service
 - relates_to from AI secret storage service
 - links_to from Shared web editing frontend
@@ -575,6 +570,7 @@
 
 ## Table editing workspace (table-editing-workspace)
 
+- depends_on from Agent tool contract
 - depends_on from HTML editor plugin runtime
 - relates_to from Schema validation engine
 - relates_to from Shared web editing frontend

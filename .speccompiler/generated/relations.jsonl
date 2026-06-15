@@ -26,18 +26,15 @@
 {"source_id": "agent-tool-contract", "target_id": "ai-assistant-service", "relation": "depends_on", "section": "Dependencies", "target_path": "specs/component/ai-assistant-service.md"}
 {"source_id": "agent-tool-contract", "target_id": "ai-provider-configuration-model", "relation": "depends_on", "section": "Dependencies", "target_path": "specs/data-model/ai-provider-configuration-model.md"}
 {"source_id": "agent-tool-contract", "target_id": "schema-validation-engine", "relation": "depends_on", "section": "Dependencies", "target_path": "specs/component/schema-validation-engine.md"}
-{"source_id": "agent-tool-contract", "target_id": "generation-merge-and-export-flow", "relation": "depends_on", "section": "Dependencies", "target_path": "specs/data-flow/generation-merge-and-export-flow.md"}
-{"source_id": "agent-tool-contract", "target_id": "generation-persistent-merge-flow", "relation": "depends_on", "section": "Dependencies", "target_path": "specs/data-flow/generation-persistent-merge-flow.md"}
-{"source_id": "agent-tool-contract", "target_id": "generation-deletion-flow", "relation": "depends_on", "section": "Dependencies", "target_path": "specs/data-flow/generation-deletion-flow.md"}
-{"source_id": "agent-tool-contract", "target_id": "generation-duplication-flow", "relation": "depends_on", "section": "Dependencies", "target_path": "specs/data-flow/generation-duplication-flow.md"}
-{"source_id": "agent-tool-contract", "target_id": "generation-analysis-flow", "relation": "depends_on", "section": "Dependencies", "target_path": "specs/data-flow/generation-analysis-flow.md"}
-{"source_id": "agent-tool-contract", "target_id": "export-execution-flow", "relation": "depends_on", "section": "Dependencies", "target_path": "specs/data-flow/export-execution-flow.md"}
+{"source_id": "agent-tool-contract", "target_id": "table-editing-workspace", "relation": "depends_on", "section": "Dependencies", "target_path": "specs/ui-screen/table-editing-workspace.md"}
 {"source_id": "agent-tool-contract", "target_id": "in-app-ai-assistant-panel", "relation": "relates_to", "section": "Related Requirements", "target_path": "specs/ui-screen/in-app-ai-assistant-panel.md"}
 {"source_id": "agent-tool-contract", "target_id": "web-service-host", "relation": "relates_to", "section": "Related Requirements", "target_path": "specs/server-component/web-service-host.md"}
 {"source_id": "agent-tool-contract", "target_id": "wails-desktop-host", "relation": "relates_to", "section": "Related Requirements", "target_path": "specs/server-component/wails-desktop-host.md"}
 {"source_id": "ai-assistant-service", "target_id": "ai-provider-configuration-model", "relation": "links_to", "section": "Responsibilities", "target_path": "specs/data-model/ai-provider-configuration-model.md"}
 {"source_id": "ai-assistant-service", "target_id": "ai-secret-storage-service", "relation": "links_to", "section": "Responsibilities", "target_path": "specs/component/ai-secret-storage-service.md"}
 {"source_id": "ai-assistant-service", "target_id": "ai-assistant-session-model", "relation": "links_to", "section": "Responsibilities", "target_path": "specs/data-model/ai-assistant-session-model.md"}
+{"source_id": "ai-assistant-service", "target_id": "in-app-ai-assistant-panel", "relation": "links_to", "section": "Responsibilities", "target_path": "specs/ui-screen/in-app-ai-assistant-panel.md"}
+{"source_id": "ai-assistant-service", "target_id": "agent-tool-contract", "relation": "links_to", "section": "Responsibilities", "target_path": "specs/component/agent-tool-contract.md"}
 {"source_id": "ai-assistant-service", "target_id": "in-app-ai-assistant-panel", "relation": "links_to", "section": "Responsibilities", "target_path": "specs/ui-screen/in-app-ai-assistant-panel.md"}
 {"source_id": "ai-assistant-service", "target_id": "agent-tool-contract", "relation": "links_to", "section": "Responsibilities", "target_path": "specs/component/agent-tool-contract.md"}
 {"source_id": "ai-assistant-service", "target_id": "agent-tool-contract", "relation": "links_to", "section": "Provider Adapter Rules", "target_path": "specs/component/agent-tool-contract.md"}
@@ -54,8 +51,6 @@
 {"source_id": "ai-assistant-service", "target_id": "go-embedded-web-server-host", "relation": "depends_on", "section": "Dependencies", "target_path": "specs/server-component/go-embedded-web-server-host.md"}
 {"source_id": "ai-assistant-service", "target_id": "wails-desktop-host", "relation": "depends_on", "section": "Dependencies", "target_path": "specs/server-component/wails-desktop-host.md"}
 {"source_id": "ai-assistant-service", "target_id": "schema-validation-engine", "relation": "depends_on", "section": "Dependencies", "target_path": "specs/component/schema-validation-engine.md"}
-{"source_id": "ai-assistant-service", "target_id": "generation-merge-and-export-flow", "relation": "depends_on", "section": "Dependencies", "target_path": "specs/data-flow/generation-merge-and-export-flow.md"}
-{"source_id": "ai-assistant-service", "target_id": "export-execution-flow", "relation": "depends_on", "section": "Dependencies", "target_path": "specs/data-flow/export-execution-flow.md"}
 {"source_id": "ai-assistant-service", "target_id": "shared-web-editing-frontend", "relation": "relates_to", "section": "Related Requirements", "target_path": "specs/component/shared-web-editing-frontend.md"}
 {"source_id": "ai-assistant-service", "target_id": "html-editor-plugin-runtime", "relation": "relates_to", "section": "Related Requirements", "target_path": "specs/component/html-editor-plugin-runtime.md"}
 {"source_id": "ai-assistant-service", "target_id": "product-overview", "relation": "relates_to", "section": "Related Requirements", "target_path": "specs/generic/product-overview.md"}
@@ -214,6 +209,7 @@
 {"source_id": "ai-assistant-session-model", "target_id": "ai-provider-configuration-model", "relation": "relates_to", "section": "Related Requirements", "target_path": "specs/data-model/ai-provider-configuration-model.md"}
 {"source_id": "ai-assistant-session-model", "target_id": "ai-secret-storage-service", "relation": "relates_to", "section": "Related Requirements", "target_path": "specs/component/ai-secret-storage-service.md"}
 {"source_id": "ai-assistant-session-model", "target_id": "web-service-host", "relation": "relates_to", "section": "Related Requirements", "target_path": "specs/server-component/web-service-host.md"}
+{"source_id": "ai-provider-configuration-model", "target_id": "ai-assistant-session-model", "relation": "links_to", "section": "Runtime Mode Rules", "target_path": "specs/data-model/ai-assistant-session-model.md"}
 {"source_id": "ai-provider-configuration-model", "target_id": "ai-settings-screen", "relation": "links_to", "section": "Rules / Constraints", "target_path": "specs/ui-screen/ai-settings-screen.md"}
 {"source_id": "ai-provider-configuration-model", "target_id": "ai-secret-storage-service", "relation": "links_to", "section": "Rules / Constraints", "target_path": "specs/component/ai-secret-storage-service.md"}
 {"source_id": "ai-provider-configuration-model", "target_id": "ai-secret-storage-service", "relation": "reads", "section": "Reads", "target_path": "specs/component/ai-secret-storage-service.md"}
