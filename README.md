@@ -12,13 +12,36 @@ and can export merged data through backend-specific adapters.
 - Edit master data through a React/Vite frontend.
 - Keep schemas and records in reviewable YAML files.
 - Load and save project-local `masterdata/` workspaces.
+- Open project-local custom editors for domain-specific workflows, such as image-backed enemy tuning or grid-based map editing.
+- Ask the in-app AI assistant questions about the current data and use it while reviewing or editing tables.
 - Build a single Go web server binary with embedded frontend assets.
 - Build a Wails desktop host that shares the Go service layer.
 - Use an npm wrapper for locally built or prebuilt native binaries.
 
 ## Screenshots
 
+### Table editing
+
 ![Table editing screen](./docs/screenshots/table-editing.jpg)
+
+### Custom editors
+
+Custom editors can provide focused, domain-specific interfaces on top of the
+same schema-backed master data. For example, a project can expose an enemy
+status editor with image upload and stat visualization, or a maze editor for
+painting walls, paths, start points, goals, and enemy placements.
+
+![Enemy status custom editor](./docs/screenshots/custom-editor.png)
+
+![Maze grid custom editor](./docs/screenshots/custom-editor2.png)
+
+### AI assistant
+
+The AI assistant panel stays available from the editing workspace so users can
+ask questions about visible data, compare records, and request changes while
+keeping the table view in context.
+
+![AI assistant panel](./docs/screenshots/ai-assistant.png)
 
 ## Requirements
 
